@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import UserRegister from "../users/userRegister"; 
+import Login from "../users/Login";
 
 export default function Navbar() {
   const [showForm, setShowForm] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
 
   return (
     <nav className="bg-gray-900 text-white">
@@ -21,7 +23,12 @@ export default function Navbar() {
 
         {/* Login / Sign Up */}
         <div className="hidden md:flex space-x-4 items-center">
-          <button className="border border-white px-4 py-1 rounded hover:bg-white hover:text-gray-900">
+
+          {/* LOGIN */}
+          <button
+            onClick={() => setShowLogin(true)}
+            className="border border-white px-4 py-1 rounded hover:bg-white hover:text-gray-900"
+          >
             Login
           </button>
 
@@ -34,6 +41,19 @@ export default function Navbar() {
             </button>
 
             {/* Modal */}
+            {showLogin && (
+              <div className="fixed inset-0 flex items-center justify-center z-50">
+                <div
+                  className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                  onClick={() => setShowLogin(false)}
+                ></div>
+
+                <div className="relative z-50">
+                  <Login closeModal={() => setShowLogin(false)} />
+                </div>
+              </div>
+            )}
+
             {showForm && (
               <div className="fixed inset-0 flex items-center justify-center z-50">
                 
@@ -43,7 +63,7 @@ export default function Navbar() {
                   onClick={() => setShowForm(false)}
                 ></div>
 
-                {/* Glass Register Form */}
+                {/* Register Form */}
                 <div className="relative z-50">
                   <UserRegister closeModal={() => setShowForm(false)} />
                 </div>

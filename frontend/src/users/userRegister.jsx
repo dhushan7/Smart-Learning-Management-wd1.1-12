@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
-
 export default function UserRegister({ closeModal }) {
   const [formData, setFormData] = useState({
     username: "",
@@ -94,18 +93,21 @@ export default function UserRegister({ closeModal }) {
           password: "",
           confirmPassword: "",
         });
+        
+        setTimeout(() => {
+          closeModal();
+        }, 1500);
       } else {
         const err = await response.json();
         setErrors({ submit: err.message || "Registration failed" });
       }
     } catch (error) {
-      setErrors({ submit: "Server error: " + error.message });
+      setErrors({ submit: "Cannot connect to server. Check if backend is running." });
     }
   };
 
   return (
-    <div className="w-[400px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl">
-
+    <div className="w-[400px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
       <button
         onClick={closeModal}
         className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -125,7 +127,6 @@ export default function UserRegister({ closeModal }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
         <input
           type="text"
           name="username"
@@ -134,9 +135,7 @@ export default function UserRegister({ closeModal }) {
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
         />
-        {errors.username && (
-          <p className="text-red-300 text-sm">{errors.username}</p>
-        )}
+        {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
 
         <input
           type="text"
@@ -146,9 +145,7 @@ export default function UserRegister({ closeModal }) {
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
         />
-        {errors.name && (
-          <p className="text-red-300 text-sm">{errors.name}</p>
-        )}
+        {errors.name && <p className="text-red-300 text-sm">{errors.name}</p>}
 
         <input
           type="email"
@@ -158,9 +155,7 @@ export default function UserRegister({ closeModal }) {
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
         />
-        {errors.email && (
-          <p className="text-red-300 text-sm">{errors.email}</p>
-        )}
+        {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
 
         <input
           type="password"
@@ -170,9 +165,7 @@ export default function UserRegister({ closeModal }) {
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
         />
-        {errors.password && (
-          <p className="text-red-300 text-sm">{errors.password}</p>
-        )}
+        {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
 
         <input
           type="password"
@@ -182,11 +175,7 @@ export default function UserRegister({ closeModal }) {
           onChange={handleChange}
           className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
         />
-        {errors.confirmPassword && (
-          <p className="text-red-300 text-sm">
-            {errors.confirmPassword}
-          </p>
-        )}
+        {errors.confirmPassword && <p className="text-red-300 text-sm">{errors.confirmPassword}</p>}
 
         <button
           type="submit"

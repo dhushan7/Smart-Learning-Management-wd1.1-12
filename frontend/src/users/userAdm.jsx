@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function UserAdm() {
-  const BASE_URL = "http://localhost:8086/users";
+  const BASE_URL = "http://localhost:8086/user";
 
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -71,7 +71,7 @@ export default function UserAdm() {
 
   return (
     <div style={{ padding: "20px" }}>
-      <h2>Admin User Management</h2>
+      <h2>Active User</h2>
 
 
       <input
