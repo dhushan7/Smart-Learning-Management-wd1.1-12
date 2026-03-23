@@ -1,5 +1,5 @@
 package com.smartlearning.backend.model;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,8 +14,8 @@ public class User {
     private String username;
     private String name;
     private String email;
+    @JsonIgnore
     private String password;
-
     public Long getId() {
         return id;
     }
