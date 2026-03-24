@@ -1,8 +1,44 @@
+:root {
+  --primary: #1e3a8a;
+  --primary-dark: #172554;
+  --secondary: #2563eb;
+  --accent: #0f766e;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --text: #111827;
+  --text-soft: #6b7280;
+  --border: #dbe3ef;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ===== NAVBAR ===== */
+
 .navbar {
-  background-color: #111827;
+  background: var(--primary-dark);
   color: white;
-  padding: 16px 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 14px 32px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .navbar-container {
@@ -11,163 +47,240 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .navbar-title {
-  font-size: 28px;
-  font-weight: bold;
-  color: #38bdf8;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.2px;
 }
 
 .navbar-links {
   list-style: none;
   display: flex;
-  gap: 24px;
+  gap: 10px;
   padding: 0;
   margin: 0;
+  align-items: center;
 }
 
 .navbar-links a {
-  color: white;
+  color: rgba(255, 255, 255, 0.92);
   font-weight: 500;
+  font-size: 15px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
 }
 
 .navbar-links a:hover {
-  color: #38bdf8;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
 }
 
 .navbar-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+}
+
+.btn-outline,
+.btn-primary {
+  padding: 9px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-outline {
-  border: 1px solid white;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   background: transparent;
   color: white;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 .btn-outline:hover {
-  background: white;
-  color: #111827;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .btn-primary {
-  background: #0ea5e9;
+  background: var(--secondary);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 .btn-primary:hover {
-  background: #0284c7;
+  background: #1d4ed8;
 }
+
+/* ===== PAGE LAYOUT ===== */
 
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 32px 24px;
 }
 
 .page-title {
-  font-size: 42px;
-  margin-bottom: 10px;
+  font-size: 34px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--primary-dark);
 }
 
 .page-subtitle {
-  color: #555;
-  margin-bottom: 30px;
-  font-size: 18px;
+  color: var(--text-soft);
+  margin-bottom: 28px;
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 760px;
 }
+
+/* ===== QUIZ GRID ===== */
 
 .quiz-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
+  gap: 22px;
 }
 
 .quiz-card {
-  background: white;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quiz-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
 }
 
 .quiz-card h2 {
   margin-top: 0;
-  font-size: 30px;
+  margin-bottom: 10px;
+  font-size: 24px;
+  color: var(--text);
 }
 
 .quiz-card p {
-  margin: 12px 0;
-  font-size: 18px;
+  margin: 10px 0;
+  font-size: 15px;
+  color: var(--text-soft);
+  line-height: 1.6;
 }
 
 .quiz-button {
-  margin-top: 16px;
-  background: #0ea5e9;
+  margin-top: 14px;
+  background: var(--secondary);
   color: white;
   border: none;
-  padding: 12px 18px;
+  padding: 11px 16px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background 0.2s ease;
 }
 
 .quiz-button:hover {
-  background: #0284c7;
+  background: #1d4ed8;
 }
 
+/* ===== QUESTION / ATTEMPT ===== */
+
 .question-card {
-  background: white;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
 }
 
 .question-card h3 {
   margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 18px;
+  color: var(--text);
 }
 
+/* ===== RESULT ===== */
+
 .result-box {
-  background: white;
-  max-width: 600px;
-  margin: 60px auto;
-  padding: 40px;
+  background: var(--surface);
+  max-width: 620px;
+  margin: 50px auto;
+  padding: 34px;
   border-radius: 18px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   text-align: center;
 }
 
 .result-score {
-  font-size: 22px;
-  margin-top: 16px;
+  font-size: 20px;
+  margin-top: 14px;
+  color: var(--primary-dark);
+  font-weight: 600;
 }
 
+/* ===== ERRORS ===== */
+
 .error-box {
-  background: #fee2e2;
+  background: var(--danger-bg);
   color: #991b1b;
-  border: 1px solid #fca5a5;
-  padding: 14px 18px;
+  border: 1px solid #fecaca;
+  padding: 13px 16px;
   border-radius: 10px;
-  margin-bottom: 20px;
-  font-size: 16px;
+  margin-bottom: 18px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .question-error {
-  border: 2px solid #ef4444;
-  background: #fff5f5;
+  border: 1.5px solid #ef4444;
+  background: #fffafa;
 }
 
 .question-error-text {
-  color: #ef4444;
-  margin-top: 10px;
-  font-size: 14px;
+  color: #dc2626;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 14px 18px;
+  }
+
+  .navbar-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .navbar-links {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .page-container {
+    padding: 24px 16px;
+  }
+
+  .page-title {
+    font-size: 28px;
+  }
+
+  .quiz-card h2 {
+    font-size: 21px;
+  }
 }
