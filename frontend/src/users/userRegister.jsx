@@ -1,5 +1,37 @@
 import React, { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
+import Login from "./Login";
+
+const FloatingLabelInput = ({
+  name,
+  type = "text",
+  label,
+  value,
+  onChange,
+  required,
+}) => (
+  <div className="relative w-full">
+    <input
+      type={type}
+      name={name}
+      id={name}
+      value={value}
+      onChange={onChange}
+      placeholder=" "
+      required={required}
+      className="peer w-full px-4 py-3 sm:py-4 rounded-lg border border-gray-400 text-black placeholder-transparent focus:outline-none focus:ring-2 focus:ring-black"
+    />
+    <label
+      htmlFor={name}
+      className={`absolute left-4 text-gray-500 text-base transition-all
+        peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
+        peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-900
+        ${value ? "top-1 text-sm text-gray-900" : ""}`}
+    >
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+  </div>
+);
 
 export default function UserRegister({ closeModal }) {
   const [formData, setFormData] = useState({
@@ -12,6 +44,7 @@ export default function UserRegister({ closeModal }) {
 
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
 
   const BASE_URL = "http://localhost:8086";
 
@@ -70,7 +103,6 @@ export default function UserRegister({ closeModal }) {
         return;
       }
 
-      // Register
       const response = await fetch(`${BASE_URL}/user`, {
         method: "POST",
         headers: {
@@ -93,7 +125,7 @@ export default function UserRegister({ closeModal }) {
           password: "",
           confirmPassword: "",
         });
-        
+
         setTimeout(() => {
           closeModal();
         }, 1500);
@@ -102,12 +134,21 @@ export default function UserRegister({ closeModal }) {
         setErrors({ submit: err.message || "Registration failed" });
       }
     } catch (error) {
-      setErrors({ submit: "Cannot connect to server. Check if backend is running." });
+      setErrors({
+        submit: "Cannot connect to server. Check if backend is running.",
+      });
     }
   };
 
+  // 🔁 Switch to Login
+  if (showLogin) {
+    return <Login closeModal={() => setShowLogin(false)} />;
+  }
+
   return (
-    <div className="w-[400px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
+    <div className="w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
+      
+      {/* Close Button */}
       <button
         onClick={closeModal}
         className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -115,10 +156,12 @@ export default function UserRegister({ closeModal }) {
         <XMarkIcon className="w-6 h-6" />
       </button>
 
+      {/* Title */}
       <h2 className="text-2xl font-bold text-white text-center mb-6">
         Create Account
       </h2>
 
+      {/* Messages */}
       {success && (
         <p className="text-green-300 text-center mb-3">{success}</p>
       )}
@@ -126,56 +169,57 @@ export default function UserRegister({ closeModal }) {
         <p className="text-red-300 text-center mb-3">{errors.submit}</p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="text"
+      {/* FORM */}
+      <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+        <FloatingLabelInput
           name="username"
-          placeholder="Username"
+          label="Username"
           value={formData.username}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
+          required
         />
         {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
 
-        <input
-          type="text"
+        <FloatingLabelInput
           name="name"
-          placeholder="Full Name"
+          label="Full Name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
+          required
         />
         {errors.name && <p className="text-red-300 text-sm">{errors.name}</p>}
 
-        <input
-          type="email"
+        <FloatingLabelInput
           name="email"
-          placeholder="Email"
+          type="email"
+          label="Email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
+          required
         />
         {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
 
-        <input
-          type="password"
+        <FloatingLabelInput
           name="password"
-          placeholder="Password"
+          type="password"
+          label="Password"
           value={formData.password}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
+          required
         />
         {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
 
-        <input
-          type="password"
+        <FloatingLabelInput
           name="confirmPassword"
-          placeholder="Confirm Password"
+          type="password"
+          label="Confirm Password"
           value={formData.confirmPassword}
           onChange={handleChange}
-          className="w-full px-4 py-2 rounded-lg bg-white/30 text-white placeholder-white/70 outline-none focus:ring-2 focus:ring-white"
+          required
         />
-        {errors.confirmPassword && <p className="text-red-300 text-sm">{errors.confirmPassword}</p>}
+        {errors.confirmPassword && (
+          <p className="text-red-300 text-sm">{errors.confirmPassword}</p>
+        )}
 
         <button
           type="submit"
@@ -184,6 +228,17 @@ export default function UserRegister({ closeModal }) {
           Register
         </button>
       </form>
+
+      {/* Login Link */}
+      <p className="text-white/80 text-sm mt-4 text-center">
+        Already have an account?{" "}
+        <span
+          onClick={() => setShowLogin(true)}
+          className="text-sky-400 hover:underline cursor-pointer"
+        >
+          Login
+        </span>
+      </p>
     </div>
   );
 }

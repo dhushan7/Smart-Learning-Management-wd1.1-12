@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import UserRegister from "../users/userRegister"; 
 import Login from "../users/Login";
 
@@ -8,17 +8,89 @@ export default function Navbar() {
   const [showLogin, setShowLogin] = useState(false);
 
   return (
-    <nav className="bg-gray-900 text-white">
+    <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">Smart Learning</h1>
 
         {/* Links */}
         <ul className="hidden md:flex space-x-8">
-          <li><Link to="/" className="hover:text-sky-400">Home</Link></li>
-          <li><Link to="/admin/users" className="hover:text-sky-400">Users</Link></li>
-          <li><Link to="/b" className="hover:text-sky-400">b</Link></li>
-          <li><Link to="/about" className="hover:text-sky-400">About</Link></li>
-          <li><Link to="/contact" className="hover:text-sky-400">Contact</Link></li>
+          <li>
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              Home
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              Dashboard
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/admin/users"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              Users
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/tasks"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              Tasks
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/about"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              About
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink
+              to="/contact"
+              className={({ isActive }) =>
+                isActive
+                  ? "text-sky-400 font-semibold"
+                  : "hover:text-sky-400"
+              }
+            >
+              Contact
+            </NavLink>
+          </li>
         </ul>
 
         {/* Login / Sign Up */}
@@ -56,14 +128,11 @@ export default function Navbar() {
 
             {showForm && (
               <div className="fixed inset-0 flex items-center justify-center z-50">
-                
-                {/* Overlay */}
                 <div
                   className="absolute inset-0 bg-black/40 backdrop-blur-sm"
                   onClick={() => setShowForm(false)}
                 ></div>
 
-                {/* Register Form */}
                 <div className="relative z-50">
                   <UserRegister closeModal={() => setShowForm(false)} />
                 </div>
