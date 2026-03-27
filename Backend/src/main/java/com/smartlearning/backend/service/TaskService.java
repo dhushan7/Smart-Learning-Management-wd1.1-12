@@ -138,6 +138,22 @@ public class TaskService {
         return dueSoon;
     }
 
+    // ✅ UPDATE TASK
+    public Task updateTask(Long id, Task updated) {
+        Task existing = repo.findById(id).orElseThrow();
+
+        existing.setTitle(updated.getTitle());
+        existing.setDueDate(updated.getDueDate());
+        existing.setCompleted(updated.isCompleted());
+        existing.setCategory(updated.getCategory());
+        existing.setNotified(updated.isNotified());
+
+        // re-apply smart logic
+        applySmartLogic(existing);
+
+        return repo.save(existing);
+    }
+
     // ✅ DELETE EXPIRED TASKS (Scheduler uses this)
     public void deleteExpiredTasks() {
         List<Task> tasks = repo.findAll();

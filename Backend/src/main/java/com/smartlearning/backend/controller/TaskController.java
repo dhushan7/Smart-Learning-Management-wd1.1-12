@@ -55,6 +55,12 @@ public class TaskController {
         return service.getDueSoonTasks();
     }
 
+    // ✅ Update task
+    @PutMapping("/{id}")
+    public Task update(@PathVariable Long id, @RequestBody Task updatedTask) {
+        return service.updateTask(id, updatedTask);
+    }
+
     // ✅ Delete a task
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {

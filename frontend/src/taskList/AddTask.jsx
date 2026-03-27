@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
-// Label Input
+/* ---------------- FLOATING INPUT ---------------- */
 const FloatingLabelInput = ({ name, type = "text", label, value, onChange, required }) => (
     <div className="relative w-full">
         <input
@@ -26,16 +26,15 @@ const FloatingLabelInput = ({ name, type = "text", label, value, onChange, requi
     </div>
 );
 
-// Label Select
-const FloatingLabelSelect = ({ name, label, options, value, onChange, required }) => (
+/* ---------------- FLOATING SELECT ---------------- */
+const FloatingLabelSelect = ({ name, label, options, value, onChange }) => (
     <div className="relative w-full mt-2">
         <select
             name={name}
             id={name}
             value={value}
             onChange={onChange}
-            required
-            className="peer w-full px-4 py-3 sm:py-4 rounded-lg border border-gray-400 text-black bg-white/30 focus:outline-none focus:ring-2 focus:ring-purple-400 appearance-none transition-all"
+            className="peer w-full px-4 py-3 sm:py-4 rounded-lg border border-gray-400 text-black bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 appearance-none"
         >
             <option value="" disabled hidden></option>
             {options.map((opt) => (
@@ -46,21 +45,18 @@ const FloatingLabelSelect = ({ name, label, options, value, onChange, required }
         </select>
 
         <label
-            htmlFor={name}
-            className={`absolute left-3 px-1 transition-all duration-200 pointer-events-none rounded-md
-        peer-focus:-top-2.5 peer-focus:text-sm peer-focus:text-purple-700 peer-focus:bg-white/80 peer-focus:backdrop-blur-md
-        ${
-                value
-                    ? "-top-2.5 text-sm text-purple-700 bg-white/80 backdrop-blur-md"
-                    : "top-3.5 text-base text-gray-600"
+            className={`absolute left-3 transition-all pointer-events-none
+        ${value
+                ? "-top-2.5 text-sm text-purple-700 bg-white px-1"
+                : "top-3.5 text-base text-gray-600"
             }`}
         >
-            {label} {required && <span className="text-red-500 ml-0.5">*</span>}
+            {label}
         </label>
     </div>
 );
 
-// Due Date Input
+/* ---------------- DATE INPUT ---------------- */
 const DueDateInput = ({ value, onChange }) => {
     const today = new Date().toISOString().split("T")[0];
 
@@ -72,21 +68,18 @@ const DueDateInput = ({ value, onChange }) => {
                 value={value}
                 onChange={onChange}
                 min={today}
-                required
-                className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-400 text-black focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="peer w-full px-4 pt-6 pb-2 rounded-lg border border-gray-400"
             />
-            <label
-                className={`absolute left-4 text-gray-400 transition-all
-          ${value ? "top-1 text-sm text-purple-500" : "top-6 text-base text-gray-400"}`}
-            >
-                Due Date <span className="text-red-500">*</span>
+            <label className="absolute left-4 text-gray-400">
+                Due Date *
             </label>
         </div>
     );
 };
 
-// Main Component
-export default function AddTask({ closeModal, onTaskAdded }) {
+/* ---------------- MAIN COMPONENT ---------------- */
+export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
+
     const [formData, setFormData] = useState({
         title: "",
         dueDate: "",
@@ -99,26 +92,42 @@ export default function AddTask({ closeModal, onTaskAdded }) {
     const [success, setSuccess] = useState("");
     const [loadingAI, setLoadingAI] = useState(false);
 
+    /* ---------------- PREFILL FOR EDIT ---------------- */
+    useEffect(() => {
+        if (editTask) {
+            setFormData({
+                title: editTask.title || "",
+                dueDate: editTask.dueDate || "",
+                priority: editTask.priority || "",
+                category: editTask.category || "",
+                completed: editTask.completed || false,
+            });
+        }
+    }, [editTask]);
+
+    /* ---------------- INPUT CHANGE ---------------- */
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData({
-            ...formData,
+
+        setFormData(prev => ({
+            ...prev,
             [name]: type === "checkbox" ? checked : value,
-        });
+        }));
     };
 
+    /* ---------------- AI GENERATE ---------------- */
     const handleAIGenerate = async () => {
         setLoadingAI(true);
         setError("");
 
         try {
-            const res = await fetch("http://localhost:8086/tasks/ai-generate", {
+            const res = await fetch("http://localhost:8086/tasks/suggest", {
                 method: "POST",
             });
 
             const data = await res.json();
 
-            setFormData((prev) => ({
+            setFormData(prev => ({
                 ...prev,
                 title: data.title || "",
                 dueDate: data.dueDate || "",
@@ -132,25 +141,31 @@ export default function AddTask({ closeModal, onTaskAdded }) {
         }
     };
 
-    const handleAdd = async (e) => {
+    /* ---------------- SUBMIT (CREATE + UPDATE) ---------------- */
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
         setError("");
         setSuccess("");
 
-        const today = new Date();
-        const selectedDate = new Date(formData.dueDate);
+        const today = new Date().setHours(0, 0, 0, 0);
+        const selected = new Date(formData.dueDate);
 
-        // Validation (clean version)
-        if (!formData.title) return setError("Please enter a task title");
-        if (!formData.dueDate) return setError("Please select a due date");
-        if (selectedDate < today.setHours(0, 0, 0, 0))
-            return setError("Due date cannot be in the past");
-        if (!formData.priority) return setError("Please select task priority");
-        if (!formData.category) return setError("Please enter a category");
+        if (!formData.title) return setError("Title required");
+        if (!formData.dueDate) return setError("Due date required");
+        if (selected < today) return setError("Due date cannot be past");
+        if (!formData.priority) return setError("Priority required");
+        if (!formData.category) return setError("Category required");
+
+        const url = isEdit
+            ? `http://localhost:8086/tasks/${editTask.id}`
+            : "http://localhost:8086/tasks";
+
+        const method = isEdit ? "PUT" : "POST";
 
         try {
-            const res = await fetch("http://localhost:8086/tasks", {
-                method: "POST",
+            const res = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
@@ -165,44 +180,50 @@ export default function AddTask({ closeModal, onTaskAdded }) {
                 return;
             }
 
-            const newTask = await res.json();
+            const savedTask = await res.json();
 
-            setSuccess("Task added successfully!");
+            setSuccess(isEdit ? "Task updated successfully!" : "Task added successfully!");
 
-            if (onTaskAdded) onTaskAdded(newTask);
+            if (onTaskAdded) onTaskAdded(savedTask);
 
             setTimeout(() => closeModal(), 500);
+
         } catch {
             setError("Server error");
         }
     };
 
+    /* ---------------- UI ---------------- */
     return (
-        <div className="w-full max-w-lg sm:w-[600px] p-6 sm:p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
-            <button
-                onClick={closeModal}
-                className="absolute top-3 right-3 text-white"
-            >
-                <XMarkIcon className="w-6 h-6" />
+        <div className="w-full max-w-lg p-6 rounded-2xl bg-white/20 backdrop-blur-xl border shadow-xl relative">
+
+            {/* CLOSE */}
+            <button onClick={closeModal} className="absolute top-3 right-3">
+                <XMarkIcon className="w-6 h-6 text-white" />
             </button>
 
-            <h2 className="text-2xl font-bold text-white text-center mb-4">
-                Add Task
+            {/* TITLE */}
+            <h2 className="text-2xl font-bold text-center text-white mb-4">
+                {isEdit ? "Update Task" : "Add Task"}
             </h2>
 
+            {/* AI BUTTON */}
             <button
                 type="button"
                 onClick={handleAIGenerate}
                 disabled={loadingAI}
-                className="w-full mb-4 py-2 rounded-lg bg-purple-500/70 text-white font-semibold"
+                className="w-full mb-4 py-2 rounded-lg bg-purple-500 text-white font-semibold"
             >
-                {loadingAI ? "Analyzing..." : "🤖 Generate Task"}
+                {loadingAI ? "Generating..." : "🤖 Generate Task"}
             </button>
 
-            {success && <p className="text-green-300 text-center">{success}</p>}
+            {/* ERROR / SUCCESS */}
             {error && <p className="text-red-300 text-center">{error}</p>}
+            {success && <p className="text-green-300 text-center">{success}</p>}
 
-            <form onSubmit={handleAdd} className="space-y-4 mt-2">
+            {/* FORM */}
+            <form onSubmit={handleSubmit} className="space-y-4 mt-3">
+
                 <FloatingLabelInput
                     name="title"
                     label="Task Title"
@@ -211,7 +232,10 @@ export default function AddTask({ closeModal, onTaskAdded }) {
                     required
                 />
 
-                <DueDateInput value={formData.dueDate} onChange={handleChange} />
+                <DueDateInput
+                    value={formData.dueDate}
+                    onChange={handleChange}
+                />
 
                 <FloatingLabelSelect
                     name="priority"
@@ -233,12 +257,14 @@ export default function AddTask({ closeModal, onTaskAdded }) {
                     required
                 />
 
+                {/* SUBMIT */}
                 <button
                     type="submit"
-                    className="w-full py-2 mt-4 rounded-lg bg-white/30 text-black font-semibold"
+                    className="w-full py-2 rounded-lg bg-white/30 font-semibold"
                 >
-                    Add Task
+                    {isEdit ? "Update Task" : "Add Task"}
                 </button>
+
             </form>
         </div>
     );

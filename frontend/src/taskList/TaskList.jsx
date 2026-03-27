@@ -8,12 +8,14 @@ export default function TaskList() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
+  // ✏️ EDIT STATE
+  const [editTask, setEditTask] = useState(null);
+
   // 🔥 Toast state
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState("success");
   const [fade, setFade] = useState(false);
 
-  // ✅ Toast function
   const showToast = (message, type = "success") => {
     setToast(message);
     setToastType(type);
@@ -26,7 +28,7 @@ export default function TaskList() {
     }, 2500);
   };
 
-  // ✅ Fetch all data
+  // ✅ Fetch data
   const fetchAll = useCallback(async () => {
     try {
       const t = await fetch("http://localhost:8086/tasks").then(r => r.json());
@@ -43,7 +45,7 @@ export default function TaskList() {
     fetchAll();
   }, [fetchAll]);
 
-  // ✅ Complete task
+  // ✅ COMPLETE TASK
   const completeTask = async (id) => {
     try {
       await fetch(`http://localhost:8086/tasks/${id}/complete`, {
@@ -62,7 +64,7 @@ export default function TaskList() {
     }
   };
 
-  // ✅ Delete task
+  // ❌ DELETE TASK
   const deleteTask = async () => {
     if (!deleteId) return;
 
@@ -87,10 +89,9 @@ export default function TaskList() {
       {toast && (
         <div
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-700
-          ${fade ? "opacity-0 -translate-y-6 scale-95" : "opacity-100"}
-        `}
+          ${fade ? "opacity-0 -translate-y-6 scale-95" : "opacity-100"}`}
         >
-          <div className={`px-6 py-3 rounded-2xl backdrop-blur-xl shadow-xl text-white flex items-center gap-2
+          <div className={`px-6 py-3 rounded-2xl shadow-xl text-white flex items-center gap-2
             ${toastType === "complete" && "bg-green-500"}
             ${toastType === "delete" && "bg-red-500"}
             ${toastType === "success" && "bg-orange-500"}
@@ -110,7 +111,7 @@ export default function TaskList() {
       <Dashboard />
 
       {/* ➕ ADD BUTTON */}
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-end mb-6 gap-3">
         <button
           onClick={() => setShowAddModal(true)}
           className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-3 rounded-2xl shadow-lg hover:scale-105 transition"
@@ -119,17 +120,30 @@ export default function TaskList() {
         </button>
       </div>
 
-      {/* 🧾 ADD MODAL */}
-      {showAddModal && (
+      {/* 🧾 ADD / EDIT MODAL */}
+      {(showAddModal || editTask) && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
           <AddTask
-            closeModal={() => setShowAddModal(false)}
-            onTaskAdded={(newTask) => {
-              if (newTask?.id) {
-                setTasks(prev => [...prev, newTask]);
-              }
-              showToast("Task added ✨", "success");
+            closeModal={() => {
               setShowAddModal(false);
+              setEditTask(null);
+            }}
+            isEdit={!!editTask}
+            editTask={editTask}
+            onTaskAdded={(savedTask) => {
+              setTasks(prev =>
+                prev.map(t =>
+                  t.id === savedTask.id ? savedTask : t
+                )
+              );
+
+              setEditTask(null);
+              setShowAddModal(false);
+
+              showToast(
+                editTask ? "Task updated ✏️" : "Task added ✨",
+                "success"
+              );
             }}
           />
         </div>
@@ -165,9 +179,7 @@ export default function TaskList() {
         {tasks.map(t => (
           <div
             key={t.id}
-            className={`p-6 rounded-2xl shadow-lg ${
-              t.completed ? "bg-gray-200" : "bg-white"
-            }`}
+            className={`p-6 rounded-2xl shadow-lg ${t.completed ? "bg-gray-200" : "bg-white"}`}
           >
             <div className="flex justify-between">
               <div>
@@ -177,21 +189,49 @@ export default function TaskList() {
                 </p>
               </div>
 
-              <div className="flex gap-2">
-                {!t.completed && (
+              {/* ACTIONS */}
+              <div className="flex flex-col items-end gap-2">
+
+                {/* TOP ROW: COMPLETE + DELETE */}
+                <div className="flex gap-2">
+
+                  {/* COMPLETE */}
+                  {!t.completed && (
+                    <button
+                      onClick={() => completeTask(t.id)}
+                      className="text-green-600"
+                      title="Complete"
+                    >
+                      ✓
+                    </button>
+                  )}
+
+                  {/* DELETE */}
                   <button
-                    onClick={() => completeTask(t.id)}
-                    className="text-green-600"
+                    onClick={() => setDeleteId(t.id)}
+                    className="text-red-500"
+                    title="Delete"
                   >
-                    ✓
+                    ✕
                   </button>
-                )}
+                </div>
+
+                {/* BOTTOM ROW: EDIT (disabled if completed) */}
                 <button
-                  onClick={() => setDeleteId(t.id)}
-                  className="text-red-500"
+                  onClick={() => {
+                    if (t.completed) return;
+                    setEditTask(t);
+                    setShowAddModal(true);
+                  }}
+                  disabled={t.completed}
+                  className={`text-blue-500 ${
+                    t.completed ? "opacity-40 cursor-not-allowed" : "hover:underline"
+                  }`}
+                  title={t.completed ? "Cannot edit completed task" : "Edit"}
                 >
-                  ✕
+                  ✎ Edit
                 </button>
+
               </div>
             </div>
 
