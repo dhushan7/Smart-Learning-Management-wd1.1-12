@@ -115,7 +115,7 @@ export default function Login({ closeModal }) {
             </span>
           </p>
 
-          <p>
+          {/* <p>
             Are you staff?{" "}
             <span
               onClick={() => setShowStaffLogin(true)}
@@ -123,7 +123,7 @@ export default function Login({ closeModal }) {
             >
               Staff Login
             </span>
-          </p>
+          </p> */}
         </div>
       </div>
 
@@ -139,7 +139,7 @@ export default function Login({ closeModal }) {
         </div>
       )}
 
-      {showStaffLogin && (
+      {/* {showStaffLogin && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -147,7 +147,7 @@ export default function Login({ closeModal }) {
           />
           <StaffLogin closeModal={() => setShowStaffLogin(false)} />
         </div>
-      )}
+      )} */}
 
     </div>
   );

@@ -6,11 +6,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
+import com.smartlearning.backend.model.EmailOTP;
+import com.smartlearning.backend.repository.OTPRepository;
+import com.smartlearning.backend.service.EmailService;
+
+import java.time.LocalDateTime;
+
 import java.util.*;
 
 @RestController
 @RequestMapping("/user")
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
+
+
 public class UserController {
 
     @Autowired
@@ -49,6 +57,77 @@ public class UserController {
         User savedUser = userRepository.save(newUser);
 
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    }
+
+    @Autowired
+    private OTPRepository otpRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOTP(@RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+
+        if (!isValidEmail(email)) {
+            return ResponseEntity.badRequest().body("Invalid email format");
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body("Email already exists");
+        }
+
+        String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+
+        EmailOTP emailOTP = new EmailOTP();
+        emailOTP.setEmail(email);
+        emailOTP.setOtp(otp);
+        emailOTP.setExpiryTime(LocalDateTime.now().plusMinutes(5));
+
+        otpRepository.deleteByEmail(email); // remove old OTP
+        otpRepository.save(emailOTP);
+
+        emailService.sendOTP(email, otp);
+
+        return ResponseEntity.ok("OTP sent successfully");
+    }
+
+    @PostMapping("/verify-otp-register")
+    public ResponseEntity<?> verifyOTPAndRegister(@RequestBody Map<String, String> request) {
+
+        String email = request.get("email");
+        String otp = request.get("otp");
+
+        Optional<EmailOTP> stored = otpRepository.findByEmail(email);
+
+        if (stored.isEmpty()) {
+            return ResponseEntity.badRequest().body("OTP not found");
+        }
+
+        EmailOTP record = stored.get();
+
+        if (!record.getOtp().equals(otp)) {
+            return ResponseEntity.badRequest().body("Invalid OTP");
+        }
+
+        if (record.getExpiryTime().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body("OTP expired");
+        }
+
+        // ✅ create user
+        User user = new User();
+        user.setUsername(request.get("username"));
+        user.setName(request.get("name"));
+        user.setEmail(email);
+        user.setPassword(request.get("password"));
+        user.setRole("Student");
+
+        userRepository.save(user);
+
+        otpRepository.deleteByEmail(email);
+
+        return ResponseEntity.ok("Registration successful");
     }
 
     // =========================
