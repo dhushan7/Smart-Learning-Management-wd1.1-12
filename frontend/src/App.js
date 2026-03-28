@@ -6,6 +6,7 @@ import TaskList from "./taskList/TaskList";
 import UserDashboard from "./pages/UserDashboard";
 import AllUserFetch from "./users/userAdm";
 import ToastProvider from "./context/toastContext";
+import CreateStaff from "./users/AdminCreateUser"
 
 function App() {
     return (
@@ -18,6 +19,7 @@ function App() {
                     <Route path="/dashboard" element={<UserDashboard />} />
                     <Route path="/admin/users" element={<AllUserFetch />} />
                     <Route path="/register" element={<UserRegister />} />
+                    <Route path="/admin/create-staff" element={<CreateStaff />} />
                     <Route path="/tasks" element={<TaskList />} />
                 </Routes>
 

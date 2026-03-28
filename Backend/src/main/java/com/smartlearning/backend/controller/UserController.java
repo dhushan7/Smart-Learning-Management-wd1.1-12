@@ -3,12 +3,10 @@ package com.smartlearning.backend.controller;
 import com.smartlearning.backend.model.User;
 import com.smartlearning.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/user")
@@ -18,61 +16,136 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // Create new user
+    // =========================
+    // ✅ EMAIL VALIDATION
+    // =========================
+    private boolean isValidEmail(String email) {
+        return email.matches("^[iI][tT]\\d{8}@my\\.sliit\\.lk$");
+    }
+
+    // =========================
+    // ✅ REGISTER (STUDENT ONLY)
+    // =========================
     @PostMapping
-    public ResponseEntity<User> newUser(@RequestBody User newUser) {
+    public ResponseEntity<?> register(@RequestBody User newUser) {
+
+        // Email format check
+        if (!isValidEmail(newUser.getEmail())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Email must be like ITXXXXXXXX@my.sliit.lk");
+        }
+
+        // Email already exists
+        if (userRepository.existsByEmail(newUser.getEmail())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Email already exists");
+        }
+
+        // 🔥 Force role
+        newUser.setRole("Student");
+
+        User savedUser = userRepository.save(newUser);
+
+        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+    }
+
+    // =========================
+    // ✅ ADMIN CREATE USER
+    // =========================
+    @PostMapping("/admin/create")
+    public ResponseEntity<User> createUserByAdmin(@RequestBody User newUser) {
         User savedUser = userRepository.save(newUser);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
-    // Login
+    // =========================
+    // ✅ LOGIN (RETURN USER OBJECT)
+    // =========================
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user) {
-        Optional<User> existingUser = userRepository.findByUsernameOrEmailAndPassword(
-                user.getUsername(),
-                user.getPassword()
-        );
+    public ResponseEntity<?> login(@RequestBody User user) {
+
+        Optional<User> existingUser =
+                userRepository.findByUsernameOrEmailAndPassword(
+                        user.getUsername(),
+                        user.getPassword()
+                );
 
         if (existingUser.isPresent()) {
-            return ResponseEntity.ok("Login successful");
+            return ResponseEntity.ok(existingUser.get()); // 🔥 return full user (with role)
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username/email or password");
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid username/email or password");
         }
     }
 
-    // Get all users
+    // =========================
+    // ✅ GET ALL USERS
+    // =========================
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // Check email is available
+    // =========================
+    // ✅ CHECK EMAIL
+    // =========================
     @GetMapping("/check-email/{email}")
     public boolean isEmailAvailable(@PathVariable String email) {
         return !userRepository.existsByEmail(email);
     }
 
-    // Delete user by ID
+    // =========================
+    // ✅ DELETE USER
+    // =========================
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+
         if (!userRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("User not found");
         }
+
         userRepository.deleteById(id);
         return ResponseEntity.ok("User deleted successfully");
     }
 
-    // Update user by ID
+    // =========================
+    // ✅ UPDATE USER
+    // =========================
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@RequestBody User newUser, @PathVariable Long id) {
-        User updatedUser = userRepository.findById(id)
-                .map(user -> {
-                    user.setName(newUser.getName());
-                    user.setEmail(newUser.getEmail());
-                    user.setUsername(newUser.getUsername());
-                    return userRepository.save(user);
-                })
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(updatedUser);
+    public ResponseEntity<?> updateUser(@RequestBody User newUser,
+                                        @PathVariable Long id) {
+
+        Optional<User> optionalUser = userRepository.findById(id);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("User not found");
+        }
+
+        User user = optionalUser.get();
+
+        // Optional: re-validate email if changed
+        if (!isValidEmail(newUser.getEmail())) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body("Invalid email format");
+        }
+
+        user.setName(newUser.getName());
+        user.setEmail(newUser.getEmail());
+        user.setUsername(newUser.getUsername());
+
+        // ❗ DO NOT update role here (protect it)
+        // ❗ DO NOT update password here (separate endpoint later)
+
+        userRepository.save(user);
+
+        return ResponseEntity.ok(user);
     }
 }

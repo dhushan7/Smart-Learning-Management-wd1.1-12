@@ -1,39 +1,9 @@
 import React, { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
+import FloatingInput from "../component/FloatingInput";
 import Login from "./Login";
 
-const FloatingLabelInput = ({
-  name,
-  type = "text",
-  label,
-  value,
-  onChange,
-  required,
-}) => (
-  <div className="relative w-full">
-    <input
-      type={type}
-      name={name}
-      id={name}
-      value={value}
-      onChange={onChange}
-      placeholder=" "
-      required={required}
-      className="peer w-full px-4 py-3 sm:py-4 rounded-lg border border-gray-400 text-black placeholder-transparent focus:outline-none focus:ring-2 focus:ring-black"
-    />
-    <label
-      htmlFor={name}
-      className={`absolute left-4 text-gray-500 text-base transition-all
-        peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-        peer-focus:top-1 peer-focus:text-sm peer-focus:text-gray-900
-        ${value ? "top-1 text-sm text-gray-900" : ""}`}
-    >
-      {label} {required && <span className="text-red-500">*</span>}
-    </label>
-  </div>
-);
-
-export default function UserRegister({ closeModal }) {
+export default function UserRegister({ closeModal, openLogin }) {
   const [formData, setFormData] = useState({
     username: "",
     name: "",
@@ -41,11 +11,10 @@ export default function UserRegister({ closeModal }) {
     password: "",
     confirmPassword: "",
   });
-
+  
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
-  const [showLogin, setShowLogin] = useState(false);
-
+  const [showUserLogin, setShowUserLogin] = useState(false);
   const BASE_URL = "http://localhost:8086";
 
   const handleChange = (e) => {
@@ -54,37 +23,32 @@ export default function UserRegister({ closeModal }) {
   };
 
   const validate = () => {
-    const newErrors = {};
+    const err = {};
 
-    if (!formData.username) newErrors.username = "Username is required";
-    if (!formData.name) newErrors.name = "Name is required";
+    if (!formData.username) err.username = "Username is required";
+    if (!formData.name) err.name = "Full name is required";
 
     if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
+      err.email = "Email is required";
+    } else if (!/^[iI][tT]\d{8}@my\.sliit\.lk$/.test(formData.email)) {
+      err.email = "Use ITXXXXXXXX@my.sliit.lk format";
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      err.password = "Password is required";
     } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
+      err.password = "Minimum 6 characters required";
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+    if (formData.password !== formData.confirmPassword) {
+      err.confirmPassword = "Passwords do not match";
     }
 
-    return newErrors;
+    return err;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    setSuccess("");
-    setErrors({});
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -96,28 +60,28 @@ export default function UserRegister({ closeModal }) {
       const emailRes = await fetch(
         `${BASE_URL}/user/check-email/${formData.email}`
       );
-      const isEmailAvailable = await emailRes.json();
+      const exists = await emailRes.json();
 
-      if (!isEmailAvailable) {
+      if (exists) {
         setErrors({ email: "Email already exists" });
         return;
       }
 
       const response = await fetch(`${BASE_URL}/user`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: formData.username,
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          role: "Student",
         }),
       });
 
       if (response.ok) {
-        setSuccess("User registered successfully!");
+        setSuccess("Student registered successfully 🎉");
+
         setFormData({
           username: "",
           name: "",
@@ -126,29 +90,34 @@ export default function UserRegister({ closeModal }) {
           confirmPassword: "",
         });
 
-        setTimeout(() => {
-          closeModal();
-        }, 1500);
+        setTimeout(() => closeModal(), 1200);
       } else {
-        const err = await response.json();
-        setErrors({ submit: err.message || "Registration failed" });
+        setErrors({ submit: "Registration failed" });
       }
-    } catch (error) {
-      setErrors({
-        submit: "Cannot connect to server. Check if backend is running.",
-      });
+    } catch {
+      setErrors({ submit: "Server not responding. Please try again." });
     }
   };
 
-  // 🔁 Switch to Login
-  if (showLogin) {
-    return <Login closeModal={() => setShowLogin(false)} />;
+  // ✅ FIX: safe login handler
+  const handleLoginClick = () => {
+    if (openLogin) {
+      openLogin();
+    } else {
+      console.warn("openLogin function is not provided from parent component");
+    }
+  };
+  if (showUserLogin) {
+    return <Login closeModal={() => setShowUserLogin(false)} />;
   }
 
   return (
-    <div className="w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
-      
-      {/* Close Button */}
+    <div
+      className="relative w-[500px] p-8 rounded-2xl
+                 bg-white/20 backdrop-blur-xl
+                 border border-white/30 shadow-2xl"
+    >
+      {/* CLOSE BUTTON */}
       <button
         onClick={closeModal}
         className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -156,12 +125,11 @@ export default function UserRegister({ closeModal }) {
         <XMarkIcon className="w-6 h-6" />
       </button>
 
-      {/* Title */}
+      {/* TITLE */}
       <h2 className="text-2xl font-bold text-white text-center mb-6">
-        Create Account
+        Student Registration
       </h2>
 
-      {/* Messages */}
       {success && (
         <p className="text-green-300 text-center mb-3">{success}</p>
       )}
@@ -169,76 +137,78 @@ export default function UserRegister({ closeModal }) {
         <p className="text-red-300 text-center mb-3">{errors.submit}</p>
       )}
 
-      {/* FORM */}
-      <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-        <FloatingLabelInput
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FloatingInput
           name="username"
           label="Username"
           value={formData.username}
           onChange={handleChange}
-          required
         />
-        {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
+        {errors.username && (
+          <p className="text-red-300 text-sm">{errors.username}</p>
+        )}
 
-        <FloatingLabelInput
+        <FloatingInput
           name="name"
           label="Full Name"
           value={formData.name}
           onChange={handleChange}
-          required
         />
         {errors.name && <p className="text-red-300 text-sm">{errors.name}</p>}
 
-        <FloatingLabelInput
+        <FloatingInput
           name="email"
-          type="email"
-          label="Email"
+          label="SLIIT Email"
           value={formData.email}
           onChange={handleChange}
-          required
         />
-        {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-red-300 text-sm">{errors.email}</p>
+        )}
 
-        <FloatingLabelInput
+        <FloatingInput
           name="password"
           type="password"
           label="Password"
           value={formData.password}
           onChange={handleChange}
-          required
         />
-        {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
+        {errors.password && (
+          <p className="text-red-300 text-sm">{errors.password}</p>
+        )}
 
-        <FloatingLabelInput
+        <FloatingInput
           name="confirmPassword"
           type="password"
           label="Confirm Password"
           value={formData.confirmPassword}
           onChange={handleChange}
-          required
         />
         {errors.confirmPassword && (
-          <p className="text-red-300 text-sm">{errors.confirmPassword}</p>
+          <p className="text-red-300 text-sm">
+            {errors.confirmPassword}
+          </p>
         )}
 
         <button
           type="submit"
-          className="w-full py-2 rounded-lg bg-white/30 hover:bg-white/40 text-white font-semibold transition"
+          className="w-full py-2 rounded-lg bg-white/30 hover:bg-white/40 text-white font-semibold"
         >
-          Register
+          Register as Student
         </button>
       </form>
 
-      {/* Login Link */}
-      <p className="text-white/80 text-sm mt-4 text-center">
+      {/* LOGIN LINK (FIXED) */}
+      <div className="text-center mt-5 text-white text-sm">
         Already have an account?{" "}
-        <span
-          onClick={() => setShowLogin(true)}
-          className="text-sky-400 hover:underline cursor-pointer"
+        <button
+          type="button"
+          onClick={() => setShowUserLogin(true)}
+          className="text-blue-200 hover:underline"
         >
-          Login
-        </span>
-      </p>
+          Login here
+        </button>
+      </div>
     </div>
   );
 }
