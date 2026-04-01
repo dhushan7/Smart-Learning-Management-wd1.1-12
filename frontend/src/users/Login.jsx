@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import UserRegister from "./userRegister";
-import StaffLogin from "./StaffLogin";
+// import StaffLogin from "./StaffLogin";
 import FloatingInput from "../component/FloatingInput";
 
 export default function Login({ closeModal }) {
@@ -10,7 +10,7 @@ export default function Login({ closeModal }) {
   const [success, setSuccess] = useState("");
 
   const [showRegister, setShowRegister] = useState(false);
-  const [showStaffLogin, setShowStaffLogin] = useState(false);
+  // const [showStaffLogin, setShowStaffLogin] = useState(false);
 
 
   const BASE_URL = "http://localhost:8086";
@@ -51,18 +51,18 @@ export default function Login({ closeModal }) {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
 
-      {/* BACKDROP */}
+      {/* backdrop - ui */}
       <div
         className="absolute inset-0 backdrop-blur-sm"
         onClick={closeModal}
       />
 
-      {/* LOGIN CARD */}
+      {/* login card */}
       <div className="relative w-[500px] p-8 rounded-2xl
                       backdrop-blur-xl bg-white/20
                       border border-white/30 shadow-2xl">
 
-        {/* CLOSE */}
+        {/* close btn */}
         <button
           onClick={closeModal}
           className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -127,7 +127,7 @@ export default function Login({ closeModal }) {
         </div>
       </div>
 
-      {/* ================= SUB MODALS ================= */}
+      {/* sub models */}
 
       {showRegister && (
         <div className="fixed inset-0 flex items-center justify-center z-50">

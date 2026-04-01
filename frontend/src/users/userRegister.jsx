@@ -21,11 +21,11 @@ export default function UserRegister({ closeModal, openLogin }) {
 
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
+
   const [showUserLogin, setShowUserLogin] = useState(false);
 
-  // =========================
-  // TIMER EFFECT
-  // =========================
+  
+  // timer for resend OTP
   useEffect(() => {
     let interval;
 
@@ -38,17 +38,15 @@ export default function UserRegister({ closeModal, openLogin }) {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // =========================
-  // HANDLE CHANGE
-  // =========================
+
+  // handle change
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  // =========================
-  // VALIDATION
-  // =========================
+  
+  // validations
   const validate = () => {
     const err = {};
 
@@ -74,9 +72,8 @@ export default function UserRegister({ closeModal, openLogin }) {
     return err;
   };
 
-  // =========================
-  // SEND OTP
-  // =========================
+  
+  // OTP send
   const sendOTP = async () => {
     const validationErrors = validate();
     if (validationErrors.email) {
@@ -99,7 +96,7 @@ export default function UserRegister({ closeModal, openLogin }) {
 
       if (res.ok) {
         setOtpSent(true);
-        setTimer(60); // 🔥 start countdown
+        setTimer(60);
         setSuccess("OTP sent to your email 📧");
       } else {
         setErrors({ email: data });
@@ -111,9 +108,8 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
-  // =========================
-  // REGISTER
-  // =========================
+  
+  // register (verify OTP and register)
   const handleRegister = async (e) => {
     e.preventDefault();
 
@@ -138,7 +134,7 @@ export default function UserRegister({ closeModal, openLogin }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          otp: otp,
+          otp,
         }),
       });
 
@@ -161,6 +157,8 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
+  
+  // login model
   if (showUserLogin) {
     return <Login closeModal={() => setShowUserLogin(false)} />;
   }
@@ -168,7 +166,7 @@ export default function UserRegister({ closeModal, openLogin }) {
   return (
     <div className="relative w-[500px] p-8 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl">
 
-      {/* CLOSE */}
+      
       <button
         onClick={closeModal}
         className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -176,7 +174,6 @@ export default function UserRegister({ closeModal, openLogin }) {
         <XMarkIcon className="w-6 h-6" />
       </button>
 
-      {/* TITLE */}
       <h2 className="text-2xl font-bold text-white text-center mb-6">
         Student Registration
       </h2>
@@ -186,21 +183,51 @@ export default function UserRegister({ closeModal, openLogin }) {
 
       <form onSubmit={handleRegister} className="space-y-4">
 
-        <FloatingInput name="username" label="Username" value={formData.username} onChange={handleChange} />
+        <FloatingInput
+          name="username"
+          label="Username"
+          value={formData.username}
+          onChange={handleChange}
+        />
         {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
 
-        <FloatingInput name="name" label="Full Name" value={formData.name} onChange={handleChange} />
+        <FloatingInput
+          name="name"
+          label="Full Name"
+          value={formData.name}
+          onChange={handleChange}
+        />
         {errors.name && <p className="text-red-300 text-sm">{errors.name}</p>}
 
-        <FloatingInput name="email" label="SLIIT Email" value={formData.email} onChange={handleChange} />
+        <FloatingInput
+          name="email"
+          label="SLIIT Email"
+          value={formData.email}
+          onChange={handleChange}
+        />
         {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
 
-        <FloatingInput type="password" name="password" label="Password" value={formData.password} onChange={handleChange} />
+        <FloatingInput
+          type="password"
+          name="password"
+          label="Password"
+          value={formData.password}
+          onChange={handleChange}
+        />
         {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
 
-        <FloatingInput type="password" name="confirmPassword" label="Confirm Password" value={formData.confirmPassword} onChange={handleChange} />
-        {errors.confirmPassword && <p className="text-red-300 text-sm">{errors.confirmPassword}</p>}
-        {/* SEND / RESEND OTP */}
+        <FloatingInput
+          type="password"
+          name="confirmPassword"
+          label="Confirm Password"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+        />
+        {errors.confirmPassword && (
+          <p className="text-red-300 text-sm">{errors.confirmPassword}</p>
+        )}
+
+        {/* OTP btn */}
         {!otpSent ? (
           <button
             type="button"
@@ -215,9 +242,7 @@ export default function UserRegister({ closeModal, openLogin }) {
             <span className="text-green-300">OTP Sent ✅</span>
 
             {timer > 0 ? (
-              <span className="text-yellow-300">
-                Resend in {timer}s
-              </span>
+              <span className="text-yellow-300">Resend in {timer}s</span>
             ) : (
               <button
                 type="button"
@@ -230,7 +255,7 @@ export default function UserRegister({ closeModal, openLogin }) {
           </div>
         )}
 
-        {/* OTP INPUT */}
+        {/* input field - otp */}
         {otpSent && (
           <>
             <FloatingInput
@@ -242,7 +267,8 @@ export default function UserRegister({ closeModal, openLogin }) {
             {errors.otp && <p className="text-red-300 text-sm">{errors.otp}</p>}
           </>
         )}
-        {/* REGISTER BUTTON */}
+
+        {/* register btn */}
         {otpSent && (
           <button
             type="submit"
@@ -252,10 +278,9 @@ export default function UserRegister({ closeModal, openLogin }) {
             {loading ? "Registering..." : "Verify & Register"}
           </button>
         )}
-
       </form>
 
-      {/* LOGIN LINK */}
+      {/* login model */}
       <div className="text-center mt-5 text-white text-sm">
         Already have an account?{" "}
         <button
@@ -265,7 +290,6 @@ export default function UserRegister({ closeModal, openLogin }) {
           Login here
         </button>
       </div>
-
     </div>
   );
 }

@@ -4,6 +4,7 @@ import com.smartlearning.backend.model.User;
 import com.smartlearning.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.smartlearning.backend.model.EmailOTP;
@@ -24,16 +25,13 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
-    // =========================
-    // ✅ EMAIL VALIDATION
-    // =========================
+    // email validation
     private boolean isValidEmail(String email) {
         return email.matches("^[iI][tT]\\d{8}@my\\.sliit\\.lk$");
     }
 
-    // =========================
-    // ✅ REGISTER (STUDENT ONLY)
-    // =========================
+    // register (std only)
+
     @PostMapping
     public ResponseEntity<?> register(@RequestBody User newUser) {
 
@@ -51,7 +49,7 @@ public class UserController {
                     .body("Email already exists");
         }
 
-        // 🔥 Force role
+        // Force role
         newUser.setRole("Student");
 
         User savedUser = userRepository.save(newUser);
@@ -65,10 +63,15 @@ public class UserController {
     @Autowired
     private EmailService emailService;
 
+    @Transactional
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOTP(@RequestBody Map<String, String> request) {
 
         String email = request.get("email");
+
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body("Email is required");
+        }
 
         if (!isValidEmail(email)) {
             return ResponseEntity.badRequest().body("Invalid email format");
@@ -85,19 +88,34 @@ public class UserController {
         emailOTP.setOtp(otp);
         emailOTP.setExpiryTime(LocalDateTime.now().plusMinutes(5));
 
-        otpRepository.deleteByEmail(email); // remove old OTP
-        otpRepository.save(emailOTP);
+        try {
+            otpRepository.deleteByEmail(email);
+            otpRepository.save(emailOTP);
 
-        emailService.sendOTP(email, otp);
+            emailService.sendOTP(email, otp);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("OTP process failed: " + e.getMessage());
+        }
 
         return ResponseEntity.ok("OTP sent successfully");
     }
 
+    @Transactional
     @PostMapping("/verify-otp-register")
     public ResponseEntity<?> verifyOTPAndRegister(@RequestBody Map<String, String> request) {
 
+        System.out.println("REQUEST: " + request); // For debugging
+
         String email = request.get("email");
         String otp = request.get("otp");
+
+        // Validate input
+        if (email == null || otp == null) {
+            return ResponseEntity.badRequest().body("Missing email or OTP");
+        }
 
         Optional<EmailOTP> stored = otpRepository.findByEmail(email);
 
@@ -115,12 +133,26 @@ public class UserController {
             return ResponseEntity.badRequest().body("OTP expired");
         }
 
-        // ✅ create user
+        // Check required fields
+        String username = request.get("username");
+        String name = request.get("name");
+        String password = request.get("password");
+
+        if (username == null || name == null || password == null) {
+            return ResponseEntity.badRequest().body("Missing registration data");
+        }
+
+        // check duplicate email
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body("Email already exists");
+        }
+
+        // reate user
         User user = new User();
-        user.setUsername(request.get("username"));
-        user.setName(request.get("name"));
+        user.setUsername(username);
+        user.setName(name);
         user.setEmail(email);
-        user.setPassword(request.get("password"));
+        user.setPassword(password);
         user.setRole("Student");
 
         userRepository.save(user);
@@ -130,18 +162,17 @@ public class UserController {
         return ResponseEntity.ok("Registration successful");
     }
 
-    // =========================
-    // ✅ ADMIN CREATE USER
-    // =========================
+
+    // admin create users
+
     @PostMapping("/admin/create")
     public ResponseEntity<User> createUserByAdmin(@RequestBody User newUser) {
         User savedUser = userRepository.save(newUser);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
-    // =========================
-    // ✅ LOGIN (RETURN USER OBJECT)
-    // =========================
+    // login (returnning user objects)
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody User user) {
 
@@ -160,25 +191,21 @@ public class UserController {
         }
     }
 
-    // =========================
-    // ✅ GET ALL USERS
-    // =========================
+    // get all users
     @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    // =========================
-    // ✅ CHECK EMAIL
-    // =========================
+
+    // email checking
     @GetMapping("/check-email/{email}")
     public boolean isEmailAvailable(@PathVariable String email) {
         return !userRepository.existsByEmail(email);
     }
 
-    // =========================
-    // ✅ DELETE USER
-    // =========================
+
+    // delete user
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
 
@@ -192,9 +219,8 @@ public class UserController {
         return ResponseEntity.ok("User deleted successfully");
     }
 
-    // =========================
-    // ✅ UPDATE USER
-    // =========================
+
+    // user update
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@RequestBody User newUser,
                                         @PathVariable Long id) {
@@ -209,7 +235,7 @@ public class UserController {
 
         User user = optionalUser.get();
 
-        // Optional: re-validate email if changed
+        // re-validate email if changed
         if (!isValidEmail(newUser.getEmail())) {
             return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
@@ -219,9 +245,6 @@ public class UserController {
         user.setName(newUser.getName());
         user.setEmail(newUser.getEmail());
         user.setUsername(newUser.getUsername());
-
-        // ❗ DO NOT update role here (protect it)
-        // ❗ DO NOT update password here (separate endpoint later)
 
         userRepository.save(user);
 
