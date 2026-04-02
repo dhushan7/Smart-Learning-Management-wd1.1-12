@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
-// ✅ Floating Label Input (same style everywhere)
+// Floating Input
 const FloatingLabelInput = ({
   name,
   type = "text",
@@ -10,6 +10,7 @@ const FloatingLabelInput = ({
   value,
   onChange,
   required,
+  disabled,
 }) => (
   <div className="relative w-full">
     <input
@@ -20,14 +21,17 @@ const FloatingLabelInput = ({
       onChange={onChange}
       placeholder=" "
       required={required}
-      className="peer w-full px-4 py-3 sm:py-4 rounded-lg border border-gray-400 text-black placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-800 focus:border-blue-800"
+      disabled={disabled}
+      className={`peer w-full px-4 py-3 rounded-lg border text-black placeholder-transparent focus:outline-none focus:ring-2 focus:ring-indigo-600 ${
+        disabled ? "bg-gray-200 cursor-not-allowed" : "bg-white border-gray-300"
+      }`}
     />
     <label
       htmlFor={name}
-      className={`absolute left-4 text-gray-500 text-base transition-all
-        peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-        peer-focus:top-1 peer-focus:text-sm peer-focus:text-blue-800
-        ${value ? "top-1 text-sm text-blue-800" : ""}`}
+      className={`absolute left-4 text-gray-500 transition-all
+        peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-base
+        peer-focus:top-1 peer-focus:text-sm peer-focus:text-indigo-600
+        ${value ? "top-1 text-sm text-indigo-600" : "top-3.5"}`}
     >
       {label} {required && <span className="text-red-500">*</span>}
     </label>
@@ -41,11 +45,12 @@ export default function UserAdm() {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 5;
+  const usersPerPage = 6;
 
   const [editingUser, setEditingUser] = useState(null);
+
+  const role = localStorage.getItem("role");
 
   useEffect(() => {
     fetchUsers();
@@ -58,58 +63,78 @@ export default function UserAdm() {
       setFilteredUsers(res.data);
       setLoading(false);
     } catch (err) {
-      console.error("FETCH ERROR:", err);
+      console.error(err);
       setLoading(false);
     }
   };
 
+  // search
   useEffect(() => {
-    const filtered = users.filter(
-      (user) =>
-        user.name.toLowerCase().includes(search.toLowerCase()) ||
-        user.email.toLowerCase().includes(search.toLowerCase()) ||
-        user.username.toLowerCase().includes(search.toLowerCase())
+    const filtered = users.filter((u) =>
+      (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.username || "").toLowerCase().includes(search.toLowerCase())
     );
     setFilteredUsers(filtered);
     setCurrentPage(1);
   }, [search, users]);
 
   const deleteUser = async (id) => {
+    if (role !== "ADMIN") return alert("Access denied!");
+
     try {
       await axios.delete(`${BASE_URL}/${id}`);
       fetchUsers();
     } catch (err) {
-      console.error("DELETE ERROR:", err);
+      console.error(err);
     }
   };
-
   const updateUser = async () => {
+    if (role !== "ADMIN") return alert("Access denied!");
+
+    if (editingUser.role === "Student") {
+      return alert("Admin cannot update student details!");
+    }
+
     try {
       await axios.put(`${BASE_URL}/${editingUser.id}`, editingUser);
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
-      console.error("UPDATE ERROR:", err);
+      console.error(err);
     }
   };
 
+  // Pagination
   const indexOfLast = currentPage * usersPerPage;
   const indexOfFirst = indexOfLast - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
-  return (
-    <div className="bg-gray-700 min-h-screen p-6 text-gray-100 font-sans">
-      <h2 className="text-3xl text-center font-bold mb-6">Active Users</h2>
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case "Admin":
+        return "bg-red-500";
+      case "Student":
+        return "bg-green-500";
+      default:
+        return "bg-blue-500";
+    }
+  };
 
-      {/* Search */}
-      <div className="flex justify-end mb-6 mr-10">
+  return (
+    <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 p-8 text-white">
+      
+
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+
         <input
           type="text"
           placeholder="Search users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 rounded-lg w-80 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-800"
+          className="px-4 py-2 rounded-lg text-black w-80 focus:ring-2 focus:ring-indigo-500"
         />
       </div>
 
@@ -117,43 +142,64 @@ export default function UserAdm() {
         <p className="text-gray-400">Loading...</p>
       ) : (
         <>
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-              <thead className="bg-gray-700 text-gray-300">
+          {/* table */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-white/10 text-gray-300">
                 <tr>
-                  <th className="py-3 px-4 text-left">ID</th>
-                  <th className="py-3 px-4 text-left">Name</th>
-                  <th className="py-3 px-4 text-left">Email</th>
-                  <th className="py-3 px-4 text-left">Username</th>
-                  <th className="py-3 px-4 text-left">Password</th>
-                  <th className="py-3 px-4 text-left">Actions</th>
+                  <th className="p-4">ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {currentUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="bg-gray-800 hover:bg-gray-700 transition-colors"
+                    className="border-t border-white/10 hover:bg-white/5 transition"
                   >
-                    <td className="py-3 px-4">{user.id}</td>
-                    <td className="py-3 px-4">{user.name}</td>
-                    <td className="py-3 px-4">{user.email}</td>
-                    <td className="py-3 px-4">{user.username}</td>
-                    <td className="py-3 px-4">********</td>
-                    <td className="py-3 px-4 flex gap-2">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="bg-blue-800 hover:bg-blue-900 px-3 py-1 rounded-lg shadow transition"
+                    <td className="p-4">{user.id}</td>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>{user.username}</td>
+
+                    {/* ROLE BADGE */}
+                    <td>
+                      <span
+                        className={`px-3 py-1 text-xs rounded-full text-white ${getRoleBadge(
+                          user.role
+                        )}`}
                       >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteUser(user.id)}
-                        className="bg-red-500 hover:bg-red-600 px-3 py-1 rounded-lg shadow transition"
-                      >
-                        Delete
-                      </button>
+                        {user.role}
+                      </span>
+                    </td>
+
+                    {/* action */}
+                    <td className="flex gap-2 p-2">
+                      
+                      {/* edit */}
+                      {role === "Admin" && user.role !== "Student" && (
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm"
+                        >
+                          Edit
+                        </button>
+                      )}
+
+                      {/* delete */}
+                      {role === "Admin" && (
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-lg text-sm"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -161,7 +207,7 @@ export default function UserAdm() {
             </table>
           </div>
 
-          {/* Pagination */}
+          {/* pagination */}
           <div className="flex justify-center mt-6 gap-2">
             {Array.from({ length: totalPages }, (_, i) => (
               <button
@@ -169,9 +215,9 @@ export default function UserAdm() {
                 onClick={() => setCurrentPage(i + 1)}
                 className={`px-3 py-1 rounded-lg ${
                   currentPage === i + 1
-                    ? "bg-blue-800 text-white shadow-lg"
-                    : "bg-gray-700 hover:bg-gray-600"
-                } transition`}
+                    ? "bg-indigo-600"
+                    : "bg-white/10 hover:bg-white/20"
+                }`}
               >
                 {i + 1}
               </button>
@@ -180,12 +226,12 @@ export default function UserAdm() {
         </>
       )}
 
-      {/* ✅ Edit Modal */}
+      {/* edit model */}
       {editingUser && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
-          <div className="w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl relative">
-
-            {/* Close Button */}
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
+          <div className="w-[520px] p-8 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 relative">
+            
+            {/* close btn */}
             <button
               onClick={() => setEditingUser(null)}
               className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -193,65 +239,62 @@ export default function UserAdm() {
               <XMarkIcon className="w-6 h-6" />
             </button>
 
-            {/* Title */}
-            <h3 className="text-2xl font-bold text-white text-center mb-6">
+            <h2 className="text-xl font-bold mb-6 text-center">
               Edit User
-            </h3>
+            </h2>
 
-            {/* Form */}
             <div className="space-y-4">
-
               <FloatingLabelInput
                 name="name"
-                label="Full Name"
+                label="Name"
                 value={editingUser.name}
+                disabled={editingUser.role === "STUDENT"}
                 onChange={(e) =>
                   setEditingUser({ ...editingUser, name: e.target.value })
                 }
-                required
               />
 
               <FloatingLabelInput
                 name="email"
-                type="email"
                 label="Email"
                 value={editingUser.email}
+                disabled={editingUser.role === "STUDENT"}
                 onChange={(e) =>
                   setEditingUser({ ...editingUser, email: e.target.value })
                 }
-                required
               />
 
               <FloatingLabelInput
                 name="username"
                 label="Username"
                 value={editingUser.username}
+                disabled={editingUser.role === "STUDENT"}
                 onChange={(e) =>
                   setEditingUser({
                     ...editingUser,
                     username: e.target.value,
                   })
                 }
-                required
               />
             </div>
 
-            {/* Buttons */}
+            {/* buttons */}
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={updateUser}
-                className="bg-blue-800 hover:bg-blue-900 px-4 py-2 rounded-lg shadow transition text-white"
+                disabled={editingUser.role === "STUDENT"}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-40"
               >
                 Save
               </button>
+
               <button
                 onClick={() => setEditingUser(null)}
-                className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg shadow transition text-white"
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg"
               >
                 Cancel
               </button>
             </div>
-
           </div>
         </div>
       )}

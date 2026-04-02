@@ -4,6 +4,7 @@ import com.smartlearning.backend.model.User;
 import com.smartlearning.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -173,22 +174,39 @@ public class UserController {
 
     // login (returnning user objects)
 
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
 
-        Optional<User> existingUser =
-                userRepository.findByUsernameOrEmailAndPassword(
-                        user.getUsername(),
-                        user.getPassword()
-                );
+        String login = request.get("login");
+        String password = request.get("password");
 
-        if (existingUser.isPresent()) {
-            return ResponseEntity.ok(existingUser.get()); // 🔥 return full user (with role)
-        } else {
-            return ResponseEntity
-                    .status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid username/email or password");
+        if (login == null || password == null) {
+            return ResponseEntity.badRequest()
+                    .body("Login and password required");
         }
+
+        Optional<User> existingUser = userRepository.findByLogin(login);
+
+        if (existingUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("User not found");
+        }
+
+        User dbUser = existingUser.get();
+
+        if (!password.equals(dbUser.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid password");
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "username", dbUser.getUsername(),
+                "email", dbUser.getEmail(),
+                "role", dbUser.getRole()
+        ));
     }
 
     // get all users
@@ -209,15 +227,19 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
 
-        if (!userRepository.existsById(id)) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
+        Optional<User> optionalUser = userRepository.findById(id);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("User not found");
         }
 
+        User target = optionalUser.get();
         userRepository.deleteById(id);
+
         return ResponseEntity.ok("User deleted successfully");
     }
+
 
 
     // user update
@@ -228,23 +250,29 @@ public class UserController {
         Optional<User> optionalUser = userRepository.findById(id);
 
         if (optionalUser.isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body("User not found");
         }
 
         User user = optionalUser.get();
 
-        // re-validate email if changed
+        // Admin cannot update STUDENT
+        if ("STUDENT".equalsIgnoreCase(user.getRole())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Admin cannot update student details");
+        }
+
+        //allow only valid emails
         if (!isValidEmail(newUser.getEmail())) {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Invalid email format");
         }
 
+        //allowed updates (Admin and Academic Panel only)
         user.setName(newUser.getName());
         user.setEmail(newUser.getEmail());
         user.setUsername(newUser.getUsername());
+        user.setRole(newUser.getRole());
 
         userRepository.save(user);
 

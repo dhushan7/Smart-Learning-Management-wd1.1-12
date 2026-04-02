@@ -1,23 +1,29 @@
 import React, { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import UserRegister from "./userRegister";
-// import StaffLogin from "./StaffLogin";
 import FloatingInput from "../component/FloatingInput";
+import { useNavigate } from "react-router-dom";
 
 export default function Login({ closeModal }) {
-  const [formData, setFormData] = useState({ username: "", password: "" });
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
   const [showRegister, setShowRegister] = useState(false);
-  // const [showStaffLogin, setShowStaffLogin] = useState(false);
 
-
+  const navigate = useNavigate();
   const BASE_URL = "http://localhost:8086";
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
     setError("");
+    setSuccess("");
   };
 
   const handleSubmit = async (e) => {
@@ -25,44 +31,69 @@ export default function Login({ closeModal }) {
     setError("");
     setSuccess("");
 
+    // validation
     if (!formData.username || !formData.password) {
       setError("All fields are required");
       return;
     }
 
     try {
+      const payload = {
+        login: formData.username,
+        password: formData.password,
+      };
+
       const response = await fetch(`${BASE_URL}/user/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        setSuccess("Login successful!");
-        setTimeout(() => closeModal(), 1000);
+      let data;
+      const contentType = response.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
       } else {
-        setError("Invalid username or password");
+        data = await response.text();
       }
-    } catch {
+
+      if (response.ok) {
+        if (data?.role) {
+          localStorage.setItem("role", data.role);
+        }
+
+        setSuccess("Login successful!");
+
+        setTimeout(() => {
+          closeModal?.();
+          navigate("/dashboard");
+        }, 800);
+      } else {
+        setError(data?.message || data || "Invalid username or password");
+      }
+    } catch (err) {
       setError("Cannot connect to server. Check backend.");
     }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-
-      {/* backdrop - ui */}
+      {/* backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-sm"
         onClick={closeModal}
       />
 
       {/* login card */}
-      <div className="relative w-[500px] p-8 rounded-2xl
-                      backdrop-blur-xl bg-white/20
-                      border border-white/30 shadow-2xl">
-
-        {/* close btn */}
+      <div
+        className="relative w-[500px] p-8 rounded-2xl
+        backdrop-blur-xl bg-white/20
+        border border-white/30 shadow-2xl"
+      >
+        {/* close button */}
         <button
           onClick={closeModal}
           className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -74,11 +105,14 @@ export default function Login({ closeModal }) {
           Login
         </h2>
 
-        {success && <p className="text-green-300 text-center mb-3">{success}</p>}
+        {/* messages */}
+        {success && (
+          <p className="text-green-300 text-center mb-3">{success}</p>
+        )}
         {error && <p className="text-red-300 text-center mb-3">{error}</p>}
 
+        {/* form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <FloatingInput
             name="username"
             label="Username or Email"
@@ -102,9 +136,8 @@ export default function Login({ closeModal }) {
           </button>
         </form>
 
-        {/* LINKS */}
+        {/* links */}
         <div className="text-center mt-4 text-sm text-white/80 space-y-2">
-
           <p>
             Don't have an account?{" "}
             <span
@@ -114,41 +147,20 @@ export default function Login({ closeModal }) {
               Register
             </span>
           </p>
-
-          {/* <p>
-            Are you staff?{" "}
-            <span
-              onClick={() => setShowStaffLogin(true)}
-              className="text-yellow-300 hover:underline cursor-pointer"
-            >
-              Staff Login
-            </span>
-          </p> */}
         </div>
       </div>
 
-      {/* sub models */}
-
+      {/* register modal */}
       {showRegister && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowRegister(false)}
           />
+
           <UserRegister closeModal={() => setShowRegister(false)} />
         </div>
       )}
-
-      {/* {showStaffLogin && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowStaffLogin(false)}
-          />
-          <StaffLogin closeModal={() => setShowStaffLogin(false)} />
-        </div>
-      )} */}
-
     </div>
   );
 }

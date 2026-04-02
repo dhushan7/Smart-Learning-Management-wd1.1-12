@@ -6,17 +6,27 @@ import TaskList from "./taskList/TaskList";
 import UserDashboard from "./pages/UserDashboard";
 import AllUserFetch from "./users/userAdm";
 import ToastProvider from "./context/toastContext";
-import CreateStaff from "./users/AdminCreateUser"
+import CreateStaff from "./users/AdminCreateUser";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import AdminNavBar from "./layout/AdminNavBar";
 
 function App() {
     return (
         <ToastProvider>
             <BrowserRouter>
                 <Navbar />
+                <AdminNavBar />
 
                 <Routes>
                     <Route path="/" element={<Home />} />
-                    <Route path="/dashboard" element={<UserDashboard />} />
+                    <Route
+                        path="/dashboard"
+                        element={
+                            <ProtectedRoute>
+                            <UserDashboard />
+                            </ProtectedRoute>
+                        }
+                        />
                     <Route path="/admin/users" element={<AllUserFetch />} />
                     <Route path="/register" element={<UserRegister />} />
                     <Route path="/admin/create-staff" element={<CreateStaff />} />

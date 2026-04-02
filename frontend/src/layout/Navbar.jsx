@@ -1,13 +1,25 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import UserRegister from "../users/userRegister";
 import Login from "../users/Login";
-import AdminCreateUser from "../users/AdminCreateUser";
 
 export default function Navbar() {
-  const [showForm, setShowForm] = useState(false);
+  const role = localStorage.getItem("role");
+  const navigate = useNavigate();
+
   const [showLogin, setShowLogin] = useState(false);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("role");
+    navigate("/");
+    window.location.reload();
+  };
+
+
+  if (role === "Admin" || role === "Academic Panel") {
+    return null;
+  }
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white z-50">
@@ -15,72 +27,64 @@ export default function Navbar() {
 
         <h1 className="text-xl font-bold">Smart Learning</h1>
 
-        {/* LINKS */}
         <ul className="hidden md:flex space-x-8">
-          <li><NavLink to="/">Home</NavLink></li>
-          <li><NavLink to="/dashboard">Dashboard</NavLink></li>
-          <li><NavLink to="/admin/users">Users</NavLink></li>
-          <li><NavLink to="/tasks">Tasks</NavLink></li>
-          <li><NavLink to="/about">About</NavLink></li>
-          <li><NavLink to="/contact">Contact</NavLink></li>
+
+          {!role && (
+            <>
+              <li><NavLink to="/">Home</NavLink></li>
+              <li><NavLink to="/about">About</NavLink></li>
+              <li><NavLink to="/contact">Contact</NavLink></li>
+            </>
+          )}
+
+          {role === "Student" && (
+            <>
+              <li><NavLink to="/dashboard">Dashboard</NavLink></li>
+              <li><NavLink to="/tasks">Tasks</NavLink></li>
+            </>
+          )}
+
         </ul>
 
-        {/* BUTTONS */}
         <div className="hidden md:flex space-x-4">
 
-          <button
-            onClick={() => setShowLogin(true)}
-            className="border px-4 py-1 rounded"
-          >
-            Login
-          </button>
+          {!role && (
+            <>
+              <button onClick={() => setShowLogin(true)} className="border px-4 py-1 rounded">
+                Login
+              </button>
 
-          <button
-            onClick={() => setShowAdmin(true)}
-            className="border px-4 py-1 rounded text-sky-400"
-          >
-            Add User
-          </button>
+              <button onClick={() => setShowRegister(true)} className="bg-sky-500 px-4 py-1 rounded">
+                Sign Up
+              </button>
+            </>
+          )}
 
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-sky-500 px-4 py-1 rounded"
-          >
-            Sign Up
-          </button>
+          {role && (
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 px-4 py-1 rounded"
+            >
+              Logout
+            </button>
+          )}
+
         </div>
       </div>
 
-      {/* ================= LOGIN MODAL ================= */}
+      {/* login */}
       {showLogin && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowLogin(false)}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowLogin(false)} />
           <Login closeModal={() => setShowLogin(false)} />
         </div>
       )}
 
-      {/* ================= SIGNUP MODAL ================= */}
-      {showForm && (
+      {/* reg */}
+      {showRegister && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowForm(false)}
-          />
-          <UserRegister closeModal={() => setShowForm(false)} />
-        </div>
-      )}
-
-      {/* ================= ADMIN MODAL ================= */}
-      {showAdmin && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowAdmin(false)}
-          />
-          <AdminCreateUser closeModal={() => setShowAdmin(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowRegister(false)} />
+          <UserRegister closeModal={() => setShowRegister(false)} />
         </div>
       )}
     </nav>
