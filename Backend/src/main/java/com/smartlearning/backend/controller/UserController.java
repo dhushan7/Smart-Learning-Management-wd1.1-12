@@ -35,6 +35,20 @@ public class UserController {
 
     // register (std only)
 
+
+    @GetMapping("/check-username")
+    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+
+        boolean exists = userRepository.existsByUsername(username);
+
+        if (exists) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Username already exists");
+        }
+
+        return ResponseEntity.ok("Username available");
+    }
+
     @PostMapping
     public ResponseEntity<?> register(@RequestBody User newUser) {
 
@@ -62,7 +76,6 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Username already exists");
         }
-
 
         // Force role
         newUser.setRole("Student");
@@ -94,11 +107,6 @@ public class UserController {
 
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body("Email already exists");
-        }
-
-        String username = request.get("username");
-        if (username != null && userRepository.existsByUsername(username)) {
-            return ResponseEntity.badRequest().body("Username already exists");
         }
 
         String otp = String.valueOf(new Random().nextInt(900000) + 100000);
@@ -199,10 +207,11 @@ public class UserController {
         if (userRepository.existsByEmail(newUser.getEmail())) {
             return ResponseEntity.badRequest().body("Email already exists");
         }
-
-        // username check
         if (userRepository.existsByUsername(newUser.getUsername())) {
             return ResponseEntity.badRequest().body("Username already exists");
+        }
+        if (newUser.getPassword() == null || newUser.getPassword().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Password is required");
         }
 
         User savedUser = userRepository.save(newUser);

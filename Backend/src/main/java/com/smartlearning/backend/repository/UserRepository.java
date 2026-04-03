@@ -3,9 +3,11 @@ package com.smartlearning.backend.repository;
 import com.smartlearning.backend.model.User;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
