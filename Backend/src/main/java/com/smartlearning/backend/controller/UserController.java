@@ -52,6 +52,18 @@ public class UserController {
                     .body("Email already exists");
         }
 
+        // USERNAME CHECK ADDED
+        if (newUser.getUsername() == null || newUser.getUsername().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Username is required");
+        }
+
+        if (userRepository.existsByUsername(newUser.getUsername())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Username already exists");
+        }
+
+
         // Force role
         newUser.setRole("Student");
 //        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
@@ -82,6 +94,11 @@ public class UserController {
 
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body("Email already exists");
+        }
+
+        String username = request.get("username");
+        if (username != null && userRepository.existsByUsername(username)) {
+            return ResponseEntity.badRequest().body("Username already exists");
         }
 
         String otp = String.valueOf(new Random().nextInt(900000) + 100000);
@@ -150,6 +167,15 @@ public class UserController {
             return ResponseEntity.badRequest().body("Email already exists");
         }
 
+        // username validation
+        if (username == null || username.isEmpty()) {
+            return ResponseEntity.badRequest().body("Username required");
+        }
+
+        if (userRepository.existsByUsername(username)) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
+
         // reate user
         User user = new User();
         user.setUsername(username);
@@ -168,7 +194,17 @@ public class UserController {
 
     // admin create users
     @PostMapping("/admin/create")
-    public ResponseEntity<User> createUserByAdmin(@RequestBody User newUser) {
+    public ResponseEntity<?> createUserByAdmin(@RequestBody User newUser) {
+
+        if (userRepository.existsByEmail(newUser.getEmail())) {
+            return ResponseEntity.badRequest().body("Email already exists");
+        }
+
+        // username check
+        if (userRepository.existsByUsername(newUser.getUsername())) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
+
         User savedUser = userRepository.save(newUser);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
@@ -214,29 +250,63 @@ public class UserController {
 
     // PROFILE
     @GetMapping("/profile")
-    public ResponseEntity<?> getProfile(@RequestParam String email) {
+    public ResponseEntity<?> getProfile(@RequestParam(required = false) String email) {
 
-        System.out.println("EMAIL RECEIVED: " + email);
+        try {
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body("Email is required");
+            }
 
-        Optional<User> optionalUser = userRepository.findByEmail(email);
+            Optional<User> optionalUser = userRepository.findByEmail(email);
 
-        System.out.println("USER FOUND: " + optionalUser);
+            if (optionalUser.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("User not found");
+            }
 
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found");
+            User user = optionalUser.get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("username", user.getUsername());
+            response.put("email", user.getEmail());
+            response.put("name", user.getName());
+            response.put("role", user.getRole());
+            response.put("profileImage",
+                    user.getProfileImage() != null ? user.getProfileImage() : "");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Server error: " + e.getMessage());
         }
+    }
 
-        User user = optionalUser.get();
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("username", user.getUsername());
-        response.put("email", user.getEmail());
-        response.put("name", user.getName());
-        response.put("role", user.getRole());
-        response.put("profileImage", user.getProfileImage()); // null SAFE
+    // ADMIN PROFILE UPDATE
+    @PutMapping("/admin/update-profile")
+    public ResponseEntity<?> adminUpdateProfile(
+            @RequestParam String email,
+            @RequestParam String name,
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        return ResponseEntity.ok(
+                userService.updateProfile(email, name, image)
+        );
+    }
 
-        return ResponseEntity.ok(response);
+
+    // ACADEMIC PANEL PROFILE UPDATE
+    @PutMapping("/academic/update-profile")
+    public ResponseEntity<?> academicUpdateProfile(
+            @RequestParam String email,
+            @RequestParam String name,
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        return ResponseEntity.ok(
+                userService.updateProfile(email, name, image)
+        );
     }
     
     @Autowired

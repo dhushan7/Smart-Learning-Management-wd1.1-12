@@ -24,20 +24,49 @@ export default function UserRegister({ closeModal, openLogin }) {
 
   const [showUserLogin, setShowUserLogin] = useState(false);
 
-  
-  // timer for resend OTP
+  // username availability
+  const [usernameChecking, setUsernameChecking] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+
+  // PASSWORD STRENGTH
+  const [strength, setStrength] = useState(0);
+
+  const strengthLabel = [
+    "Very Weak",
+    "Weak",
+    "Fair",
+    "Good",
+    "Strong",
+    "Very Strong",
+  ];
+
+  const strengthColor = [
+    "#ef4444",
+    "#f97316",
+    "#eab308",
+    "#22c55e",
+    "#16a34a",
+    "#15803d",
+  ];
+
+  const calculateStrength = (pwd) => {
+    let score = 0;
+    if (pwd.length >= 6) score++;
+    if (pwd.length >= 10) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    setStrength(score);
+  };
+
+  // timer
   useEffect(() => {
     let interval;
-
     if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setTimer((p) => p - 1), 1000);
     }
-
     return () => clearInterval(interval);
   }, [timer]);
-
 
   // handle change
   const handleChange = (e) => {
@@ -45,7 +74,42 @@ export default function UserRegister({ closeModal, openLogin }) {
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
-  
+  const handlePasswordChange = (val) => {
+    setFormData({ ...formData, password: val });
+    calculateStrength(val);
+  };
+
+  // CHECK USERNAME EXISTS
+  const checkUsername = async (username) => {
+    if (!username) return;
+
+    setUsernameChecking(true);
+
+    try {
+      const res = await fetch(
+        `${BASE_URL}/user/check-username?username=${username}`
+      );
+
+      const data = await res.text();
+
+      if (res.ok) {
+        setUsernameAvailable(true);
+        setErrors((prev) => ({ ...prev, username: "" }));
+      } else {
+        setUsernameAvailable(false);
+        setErrors((prev) => ({ ...prev, username: data }));
+      }
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        username: "Cannot check username",
+      }));
+      setUsernameAvailable(false);
+    }
+
+    setUsernameChecking(false);
+  };
+
   // validations
   const validate = () => {
     const err = {};
@@ -72,12 +136,17 @@ export default function UserRegister({ closeModal, openLogin }) {
     return err;
   };
 
-  
   // OTP send
   const sendOTP = async () => {
     const validationErrors = validate();
-    if (validationErrors.email) {
+
+    if (validationErrors.username) {
       setErrors(validationErrors);
+      return;
+    }
+
+    if (usernameAvailable === false) {
+      setErrors({ username: "Username already exists" });
       return;
     }
 
@@ -108,8 +177,7 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
-  
-  // register (verify OTP and register)
+  // register
   const handleRegister = async (e) => {
     e.preventDefault();
 
@@ -129,14 +197,14 @@ export default function UserRegister({ closeModal, openLogin }) {
     setSuccess("");
 
     try {
-      const res = await fetch(`${BASE_URL}/user/verify-otp-register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          otp,
-        }),
-      });
+      const res = await fetch(
+        `${BASE_URL}/user/verify-otp-register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...formData, otp }),
+        }
+      );
 
       const data = await res.text();
 
@@ -157,8 +225,7 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
-  
-  // login model
+  // login modal
   if (showUserLogin) {
     return <Login closeModal={() => setShowUserLogin(false)} />;
   }
@@ -166,7 +233,6 @@ export default function UserRegister({ closeModal, openLogin }) {
   return (
     <div className="relative w-[500px] p-8 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl">
 
-      
       <button
         onClick={closeModal}
         className="absolute top-3 right-3 text-white hover:text-red-400"
@@ -183,13 +249,26 @@ export default function UserRegister({ closeModal, openLogin }) {
 
       <form onSubmit={handleRegister} className="space-y-4">
 
+        {/* USERNAME */}
         <FloatingInput
           name="username"
           label="Username"
           value={formData.username}
           onChange={handleChange}
+          onBlur={() => checkUsername(formData.username)}
         />
-        {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
+
+        {usernameChecking && (
+          <p className="text-yellow-200 text-sm">Checking username...</p>
+        )}
+
+        {usernameAvailable === true && formData.username && (
+          <p className="text-green-300 text-sm">Username available ✅</p>
+        )}
+
+        {errors.username && (
+          <p className="text-red-300 text-sm">{errors.username}</p>
+        )}
 
         <FloatingInput
           name="name"
@@ -212,9 +291,32 @@ export default function UserRegister({ closeModal, openLogin }) {
           name="password"
           label="Password"
           value={formData.password}
-          onChange={handleChange}
+          onChange={(e) => handlePasswordChange(e.target.value)}
         />
-        {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
+
+        {errors.password && (
+          <p className="text-red-300 text-sm">{errors.password}</p>
+        )}
+
+        {formData.password && (
+          <div>
+            <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+              <div
+                className="h-full transition-all duration-300"
+                style={{
+                  width: `${(strength / 5) * 100}%`,
+                  backgroundColor: strengthColor[strength],
+                }}
+              />
+            </div>
+            <p
+              className="text-xs mt-1"
+              style={{ color: strengthColor[strength] }}
+            >
+              {strengthLabel[strength]}
+            </p>
+          </div>
+        )}
 
         <FloatingInput
           type="password"
@@ -223,11 +325,12 @@ export default function UserRegister({ closeModal, openLogin }) {
           value={formData.confirmPassword}
           onChange={handleChange}
         />
+
         {errors.confirmPassword && (
           <p className="text-red-300 text-sm">{errors.confirmPassword}</p>
         )}
 
-        {/* OTP btn */}
+        {/* OTP */}
         {!otpSent ? (
           <button
             type="button"
@@ -238,9 +341,8 @@ export default function UserRegister({ closeModal, openLogin }) {
             {loading ? "Sending..." : "Send OTP"}
           </button>
         ) : (
-          <div className="flex justify-between items-center text-sm">
+          <div className="flex justify-between text-sm">
             <span className="text-green-300">OTP Sent ✅</span>
-
             {timer > 0 ? (
               <span className="text-yellow-300">Resend in {timer}s</span>
             ) : (
@@ -255,7 +357,6 @@ export default function UserRegister({ closeModal, openLogin }) {
           </div>
         )}
 
-        {/* input field - otp */}
         {otpSent && (
           <>
             <FloatingInput
@@ -264,11 +365,12 @@ export default function UserRegister({ closeModal, openLogin }) {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
             />
-            {errors.otp && <p className="text-red-300 text-sm">{errors.otp}</p>}
+            {errors.otp && (
+              <p className="text-red-300 text-sm">{errors.otp}</p>
+            )}
           </>
         )}
 
-        {/* register btn */}
         {otpSent && (
           <button
             type="submit"
@@ -280,7 +382,6 @@ export default function UserRegister({ closeModal, openLogin }) {
         )}
       </form>
 
-      {/* login model */}
       <div className="text-center mt-5 text-white text-sm">
         Already have an account?{" "}
         <button

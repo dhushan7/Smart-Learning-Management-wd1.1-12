@@ -9,7 +9,9 @@ import ToastProvider from "./context/toastContext";
 import CreateStaff from "./users/AdminCreateUser";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminNavBar from "./layout/AdminNavBar";
-import UsrProfile from "./pages/UsrProfile";
+import UsrProfile from "./users/UsrProfile";
+import AdminProfile from "./users/AdminProfile";
+import EditProfile from "./users/EditAdmProfile";
 
 function App() {
     return (
@@ -33,6 +35,8 @@ function App() {
                     <Route path="/admin/create-staff" element={<CreateStaff />} />
                     <Route path="/tasks" element={<TaskList />} />
                     <Route path="/profile" element={<UsrProfile />} />
+                    <Route path="/admin/profile" element={<AdminProfile />} />
+                    <Route path="/admin/edit-profile" element={<EditProfile />} />
                 </Routes>
 
             </BrowserRouter>

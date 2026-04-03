@@ -5,7 +5,7 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-10 text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen from-indigo-100 via-blue-100 to-gray-100 p-10 text-center">
 
       <h1 className="text-5xl font-extrabold mb-4">
         Welcome to Smart Learning

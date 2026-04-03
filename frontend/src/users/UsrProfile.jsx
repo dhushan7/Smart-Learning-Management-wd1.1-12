@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import EditProfile from "../users/EditProfile";
+import EditProfile from "./EditProfile";
 
 export default function UsrProfile() {
   const navigate = useNavigate();
