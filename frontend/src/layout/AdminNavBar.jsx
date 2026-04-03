@@ -66,8 +66,8 @@ export default function AdminNavBar() {
             </li>
 
             <li>
-              <NavLink to="/tasks" className={linkStyle}>
-                Tasks
+              <NavLink to="/cources" className={linkStyle}>
+                Manage Courses
               </NavLink>
             </li>
           </>

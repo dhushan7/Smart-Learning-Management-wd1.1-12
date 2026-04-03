@@ -3,13 +3,18 @@ package com.smartlearning.backend.config;
 import com.smartlearning.backend.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.*;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.*;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.*;
+
+import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -30,20 +35,17 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // main security
+    // MAIN SECURITY (Spring Security 6 )
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/login", "/user", "/user/send-otp", "/user/verify-otp-register").permitAll()
-
-                        .requestMatchers("/admin/**").hasRole("Admin")
-                        .requestMatchers("/student/**").hasRole("Student")
-                        .requestMatchers("/academic/**").hasRole("Academic Panel")
-
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll() // (dev mode)
                 )
 
                 .sessionManagement(session ->
@@ -51,5 +53,30 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    // CORS CONFIGURATION
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration config = new CorsConfiguration();
+
+        config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+        ));
+
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "DELETE", "OPTIONS"
+        ));
+
+        config.setAllowedHeaders(List.of("*"));
+
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
     }
 }

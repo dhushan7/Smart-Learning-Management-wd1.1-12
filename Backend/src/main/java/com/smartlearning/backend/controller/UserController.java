@@ -1,7 +1,9 @@
 package com.smartlearning.backend.controller;
 
+import com.smartlearning.backend.dto.ChangePasswordRequest;
 import com.smartlearning.backend.model.User;
 import com.smartlearning.backend.repository.UserRepository;
+import com.smartlearning.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import com.smartlearning.backend.model.EmailOTP;
 import com.smartlearning.backend.repository.OTPRepository;
 import com.smartlearning.backend.service.EmailService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +21,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"})
 
 
 public class UserController {
@@ -52,7 +54,7 @@ public class UserController {
 
         // Force role
         newUser.setRole("Student");
-
+//        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
         User savedUser = userRepository.save(newUser);
 
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
@@ -165,15 +167,13 @@ public class UserController {
 
 
     // admin create users
-
     @PostMapping("/admin/create")
     public ResponseEntity<User> createUserByAdmin(@RequestBody User newUser) {
         User savedUser = userRepository.save(newUser);
         return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
     }
 
-    // login (returnning user objects)
-
+    // login
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
@@ -196,7 +196,10 @@ public class UserController {
         }
 
         User dbUser = existingUser.get();
-
+//        if (!passwordEncoder.matches(password, dbUser.getPassword())) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                    .body("Invalid password");
+//        }
         if (!password.equals(dbUser.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid password");
@@ -207,6 +210,62 @@ public class UserController {
                 "email", dbUser.getEmail(),
                 "role", dbUser.getRole()
         ));
+    }
+
+    // PROFILE
+    @GetMapping("/profile")
+    public ResponseEntity<?> getProfile(@RequestParam String email) {
+
+        System.out.println("EMAIL RECEIVED: " + email);
+
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        System.out.println("USER FOUND: " + optionalUser);
+
+        if (optionalUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("User not found");
+        }
+
+        User user = optionalUser.get();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("name", user.getName());
+        response.put("role", user.getRole());
+        response.put("profileImage", user.getProfileImage()); // null SAFE
+
+        return ResponseEntity.ok(response);
+    }
+    
+    @Autowired
+    private UserService userService;
+
+
+    // CHANGE PASSWORD
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+
+        if (request.getEmail() == null ||
+                request.getCurrentPassword() == null ||
+                request.getNewPassword() == null) {
+            return ResponseEntity.badRequest().body("Missing password data");
+        }
+
+        try {
+            String result = userService.changePassword(
+                    request.getEmail(),
+                    request.getCurrentPassword(),
+                    request.getNewPassword()
+            );
+
+            return ResponseEntity.ok(Map.of("message", result));
+
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", ex.getMessage()));
+        }
     }
 
     // get all users
@@ -241,6 +300,14 @@ public class UserController {
     }
 
 
+    @PutMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestParam String email,
+            @RequestParam String name,
+            @RequestParam(required = false) MultipartFile image
+    ) {
+        return ResponseEntity.ok(userService.updateProfile(email, name, image));
+    }
 
     // user update
     @PutMapping("/{id}")
@@ -257,16 +324,16 @@ public class UserController {
         User user = optionalUser.get();
 
         // Admin cannot update STUDENT
-        if ("STUDENT".equalsIgnoreCase(user.getRole())) {
+        if ("Student".equalsIgnoreCase(user.getRole())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Admin cannot update student details");
         }
 
         //allow only valid emails
-        if (!isValidEmail(newUser.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Invalid email format");
-        }
+//        if (!isValidEmail(newUser.getEmail())) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                    .body("Invalid email format");
+//        }
 
         //allowed updates (Admin and Academic Panel only)
         user.setName(newUser.getName());

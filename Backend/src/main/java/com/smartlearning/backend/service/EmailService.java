@@ -12,11 +12,17 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     public void sendOTP(String toEmail, String otp) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(toEmail);
-        message.setSubject("OTP Verification - SmartLearning");
-        message.setText("Your OTP is: " + otp + "\nValid for 5 minutes.");
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("OTP Verification - SmartLearning");
+            message.setText("Your OTP is: " + otp + "\nValid for 5 minutes.");
 
-        mailSender.send(message);
+            mailSender.send(message);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Email sending failed: " + e.getMessage());
+        }
     }
 }

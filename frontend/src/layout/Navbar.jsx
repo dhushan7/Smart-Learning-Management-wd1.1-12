@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import UserRegister from "../users/userRegister";
 import Login from "../users/Login";
@@ -9,13 +9,29 @@ export default function Navbar() {
 
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [openProfileMenu, setOpenProfileMenu] = useState(false);
+
+  const menuRef = useRef();
+
+  const user = JSON.parse(localStorage.getItem("user")); 
+  // expect: { username, email, profileImage }
 
   const handleLogout = () => {
-    localStorage.removeItem("role");
+    localStorage.clear();
     navigate("/");
     window.location.reload();
   };
 
+  // close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenProfileMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (role === "Admin" || role === "Academic Panel") {
     return null;
@@ -27,8 +43,8 @@ export default function Navbar() {
 
         <h1 className="text-xl font-bold">Smart Learning</h1>
 
+        {/* LINKS */}
         <ul className="hidden md:flex space-x-8">
-
           {!role && (
             <>
               <li><NavLink to="/">Home</NavLink></li>
@@ -43,11 +59,12 @@ export default function Navbar() {
               <li><NavLink to="/tasks">Tasks</NavLink></li>
             </>
           )}
-
         </ul>
 
-        <div className="hidden md:flex space-x-4">
+        
+        <div className="flex items-center space-x-4">
 
+          {/* NOT LOGGED IN */}
           {!role && (
             <>
               <button onClick={() => setShowLogin(true)} className="border px-4 py-1 rounded">
@@ -60,19 +77,50 @@ export default function Navbar() {
             </>
           )}
 
+          {/* LOGGED IN USER PROFILE */}
           {role && (
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 px-4 py-1 rounded"
-            >
-              Logout
-            </button>
-          )}
+            <div className="relative" ref={menuRef}>
+              
+              {/* Avatar */}
+              <img
+                src={
+                  user?.profileImage ||
+                  "https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff"
+                }
+                alt="profile"
+                onClick={() => setOpenProfileMenu(!openProfileMenu)}
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-white"
+              />
 
+              {/* DROPDOWN */}
+              {openProfileMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg overflow-hidden">
+
+                  <button
+                    onClick={() => {
+                      setOpenProfileMenu(false);
+                      navigate("/profile");
+                    }}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                  >
+                    Manage Profile
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500"
+                  >
+                    Logout
+                  </button>
+
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* login */}
+      {/* LOGIN MODAL */}
       {showLogin && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowLogin(false)} />
@@ -80,7 +128,7 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* reg */}
+      {/* REGISTER MODAL */}
       {showRegister && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowRegister(false)} />

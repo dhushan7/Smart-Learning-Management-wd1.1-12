@@ -16,13 +16,13 @@ public class User {
     private String email;
 //    @JsonIgnore
     private String password;
-
     private String role;
+    private String profileImage;
+
 
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
     }
@@ -61,4 +61,7 @@ public class User {
     public void setRole(String role) {
         this.role = role;
     }
+
+    public String getProfileImage() {return profileImage;}
+    public void setProfileImage(String profileImage) {this.profileImage = profileImage;}
 }

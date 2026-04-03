@@ -31,7 +31,6 @@ export default function Login({ closeModal }) {
     setError("");
     setSuccess("");
 
-    // validation
     if (!formData.username || !formData.password) {
       setError("All fields are required");
       return;
@@ -61,9 +60,19 @@ export default function Login({ closeModal }) {
       }
 
       if (response.ok) {
-        if (data?.role) {
-          localStorage.setItem("role", data.role);
-        }
+
+        // UILD USER OBJECT
+        const userData = {
+          username: data.username || data.user?.username || formData.username,
+          email: data.email || data.user?.email || "",
+          role: data.role || "Student",
+          profileImage: data.profileImage || null,
+          token: data.token || null,
+        };
+
+        // STORE USER
+        localStorage.setItem("user", JSON.stringify(userData));
+        localStorage.setItem("role", userData.role);
 
         setSuccess("Login successful!");
 
@@ -71,6 +80,7 @@ export default function Login({ closeModal }) {
           closeModal?.();
           navigate("/dashboard");
         }, 800);
+
       } else {
         setError(data?.message || data || "Invalid username or password");
       }
@@ -81,6 +91,7 @@ export default function Login({ closeModal }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
+
       {/* backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-sm"
@@ -109,10 +120,13 @@ export default function Login({ closeModal }) {
         {success && (
           <p className="text-green-300 text-center mb-3">{success}</p>
         )}
-        {error && <p className="text-red-300 text-center mb-3">{error}</p>}
+        {error && (
+          <p className="text-red-300 text-center mb-3">{error}</p>
+        )}
 
         {/* form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+
           <FloatingInput
             name="username"
             label="Username or Email"

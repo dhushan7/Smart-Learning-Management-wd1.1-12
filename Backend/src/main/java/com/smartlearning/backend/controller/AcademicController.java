@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/academic")
-@PreAuthorize("hasRole('ACADEMIC')")
+@PreAuthorize("hasRole('Academic Panel')")
 public class AcademicController {
 
     @GetMapping("/dashboard")

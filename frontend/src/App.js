@@ -9,6 +9,7 @@ import ToastProvider from "./context/toastContext";
 import CreateStaff from "./users/AdminCreateUser";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminNavBar from "./layout/AdminNavBar";
+import UsrProfile from "./pages/UsrProfile";
 
 function App() {
     return (
@@ -31,6 +32,7 @@ function App() {
                     <Route path="/register" element={<UserRegister />} />
                     <Route path="/admin/create-staff" element={<CreateStaff />} />
                     <Route path="/tasks" element={<TaskList />} />
+                    <Route path="/profile" element={<UsrProfile />} />
                 </Routes>
 
             </BrowserRouter>
