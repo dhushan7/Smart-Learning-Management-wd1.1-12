@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
-import UserRegister from "../users/userRegister";
-import Login from "../users/Login";
+import React from "react";
+import { Link } from "react-router-dom";
+import "../App.css";
 
 export default function Navbar() {
   const role = localStorage.getItem("role");
@@ -42,7 +41,14 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
         <h1 className="text-xl font-bold">Smart Learning</h1>
+    <nav className="navbar">
+      <div className="navbar-container">
+        <h1 className="navbar-title">Smart Learning</h1>
 
+        <ul className="navbar-links">
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/quiz-bank">Quiz Bank</Link></li>
+          <li><Link to="/chatbot">Chatbot</Link></li>
         {/* LINKS */}
         <ul className="hidden md:flex space-x-8">
           {!role && (
@@ -61,6 +67,9 @@ export default function Navbar() {
           )}
         </ul>
 
+        <div className="navbar-buttons">
+          <button className="btn-outline">Login</button>
+          <button className="btn-primary">Sign Up</button>
         
         <div className="flex items-center space-x-4">
 
