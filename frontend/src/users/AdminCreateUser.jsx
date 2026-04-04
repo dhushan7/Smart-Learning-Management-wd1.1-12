@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import FloatingInput from "../component/FloatingInput";
 
-export default function AdminCreateUser({ closeModal }) {
+export default function AdminCreateUser() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState({
     username: "",
     name: "",
@@ -12,11 +15,10 @@ export default function AdminCreateUser({ closeModal }) {
 
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
-  
 
   const BASE_URL = "http://localhost:8086";
 
-  // ---------------- HANDLE CHANGE ----------------
+  // HANDLE CHANGE
   const handleChange = (e) => {
     setUser({
       ...user,
@@ -29,7 +31,7 @@ export default function AdminCreateUser({ closeModal }) {
     });
   };
 
-  // ---------------- VALIDATION ----------------
+  // VALIDATION
   const validate = () => {
     const err = {};
 
@@ -53,7 +55,7 @@ export default function AdminCreateUser({ closeModal }) {
     return err;
   };
 
-  // ---------------- SUBMIT ----------------
+  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -86,9 +88,11 @@ export default function AdminCreateUser({ closeModal }) {
           role: "Student",
         });
 
+        // ✅ Navigate after success
         setTimeout(() => {
-          closeModal(); // auto close like register page
-        }, 1200);
+          navigate("/admin/users");
+        }, 1000);
+
       } else {
         setErrors({ submit: "Failed to create user" });
       }
@@ -97,18 +101,18 @@ export default function AdminCreateUser({ closeModal }) {
     }
   };
 
-  // ---------------- UI (GLOSSY MODAL LIKE REGISTER) ----------------
+  // UI
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
 
-      {/* BACKDROP */}
+      {/* BACK BUTTON AREA (click outside effect) */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={closeModal}
+        className="absolute inset-0"
+        onClick={() => navigate("/admin/users")}
       />
 
-      {/* MODAL CARD */}
-      <div className="relative w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl">
+      {/* CARD */}
+      <div className="relative w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl z-10">
 
         <h2 className="text-2xl font-bold text-white text-center mb-6">
           Admin Create User

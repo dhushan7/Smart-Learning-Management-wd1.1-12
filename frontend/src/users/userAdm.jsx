@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Swal from "sweetalert2";
@@ -52,6 +53,7 @@ export default function UserAdm() {
   const [editingUser, setEditingUser] = useState(null);
 
   const role = localStorage.getItem("role");
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchUsers();
@@ -260,8 +262,19 @@ export default function UserAdm() {
     <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 p-8 text-white">
       
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-8 mt-20">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+
+        <div className="flex gap-3 items-center mb-10">
+        {/* CREATE STAFF BUTTON */}
+        {role === "Admin" && (
+          <button
+            onClick={() => navigate("/admin/create-staff")}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium shadow-lg shadow-indigo-500/30 transition"
+          >
+            + Create New User
+          </button>
+        )}
 
         <input
           type="text"
@@ -270,6 +283,7 @@ export default function UserAdm() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-4 py-2 rounded-lg text-black w-80 focus:ring-2 focus:ring-indigo-500"
         />
+        </div>
       </div>
 
       {loading ? (
