@@ -34,7 +34,7 @@ export default function UsrProfile() {
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
 
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-300 via-purple-300 to-pink-300" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-300 via-blue-300 to-gray-300" />
 
       {/* MODAL */}
       <div className="relative z-10 w-[60vw] rounded-3xl p-8 flex flex-col items-center space-y-6">

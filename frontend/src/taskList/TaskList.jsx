@@ -8,10 +8,10 @@ export default function TaskList() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
 
-  // ✏️ EDIT STATE
+  // EDIT STATE
   const [editTask, setEditTask] = useState(null);
 
-  // 🔥 Toast state
+  // Toast 
   const [toast, setToast] = useState(null);
   const [toastType, setToastType] = useState("success");
   const [fade, setFade] = useState(false);
@@ -28,7 +28,7 @@ export default function TaskList() {
     }, 2500);
   };
 
-  // ✅ Fetch data
+  // Fetch data
   const fetchAll = useCallback(async () => {
     try {
       const t = await fetch("http://localhost:8086/tasks").then(r => r.json());
@@ -45,7 +45,7 @@ export default function TaskList() {
     fetchAll();
   }, [fetchAll]);
 
-  // ✅ COMPLETE TASK
+  // COMPLETE TASK
   const completeTask = async (id) => {
     try {
       await fetch(`http://localhost:8086/tasks/${id}/complete`, {
@@ -64,7 +64,7 @@ export default function TaskList() {
     }
   };
 
-  // ❌ DELETE TASK
+  // DELETE TASK
   const deleteTask = async () => {
     if (!deleteId) return;
 
@@ -85,7 +85,7 @@ export default function TaskList() {
   return (
     <div className="bg-gradient-to-br from-indigo-100 to-purple-200 min-h-screen p-6 font-sans">
 
-      {/* 🔔 TOAST */}
+      {/* TOAST */}
       {toast && (
         <div
           className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-700
@@ -110,7 +110,7 @@ export default function TaskList() {
 
       <Dashboard />
 
-      {/* ➕ ADD BUTTON */}
+      {/* ADD BUTTON */}
       <div className="flex justify-end mb-6 gap-3">
         <button
           onClick={() => setShowAddModal(true)}
@@ -120,7 +120,7 @@ export default function TaskList() {
         </button>
       </div>
 
-      {/* 🧾 ADD / EDIT MODAL */}
+      {/* ADD / EDIT MODAL */}
       {(showAddModal || editTask) && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
           <AddTask
@@ -149,7 +149,7 @@ export default function TaskList() {
         </div>
       )}
 
-      {/* ❌ DELETE MODAL */}
+      {/* DELETE MODAL */}
       {deleteId && (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl text-center shadow-lg">
@@ -174,7 +174,7 @@ export default function TaskList() {
         </div>
       )}
 
-      {/* 📋 TASK LIST */}
+      {/* TASK LIST */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tasks.map(t => (
           <div
@@ -216,7 +216,7 @@ export default function TaskList() {
                   </button>
                 </div>
 
-                {/* BOTTOM ROW: EDIT (disabled if completed) */}
+                {/* EDIT (disabled if completed) */}
                 <button
                   onClick={() => {
                     if (t.completed) return;
@@ -242,7 +242,7 @@ export default function TaskList() {
         ))}
       </div>
 
-      {/* 🔔 NOTIFICATIONS */}
+      {/* NOTIFICATIONS */}
       {notifications.length > 0 && (
         <div className="mt-10">
           <h2 className="text-xl font-bold mb-3">Notifications</h2>

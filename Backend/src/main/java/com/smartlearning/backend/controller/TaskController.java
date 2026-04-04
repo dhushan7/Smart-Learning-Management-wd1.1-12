@@ -19,49 +19,49 @@ public class TaskController {
         this.service = service;
     }
 
-    // ✅ Create a new task
+    // Create a new task
     @PostMapping
     public Task create(@RequestBody Task t) {
         return service.createTask(t);
     }
 
-    // ✅ Get all tasks
+    // Get all tasks
     @GetMapping
     public List<Task> all() {
         return service.getAllTasks();
     }
 
-    // ✅ Mark task as completed
+    // Mark task as completed
     @PutMapping("/{id}/complete")
     public Task complete(@PathVariable Long id) {
         return service.completeTask(id);
     }
 
-    // ✅ AI / auto suggestion (or random task)
+    // AI / auto suggestion (or random task)
     @PostMapping("/suggest")
     public Task suggest() {
         return service.generateSuggestion();
     }
 
-    // ✅ Dashboard stats
+    // Dashboard stats
     @GetMapping("/stats")
     public Map<String, Object> stats() {
         return service.getStats();
     }
 
-    // ✅ Notifications (due soon tasks)
+    // Notifications (due soon tasks)
     @GetMapping("/notifications")
     public List<Task> notifications() {
         return service.getDueSoonTasks();
     }
 
-    // ✅ Update task
+    // Update task
     @PutMapping("/{id}")
     public Task update(@PathVariable Long id, @RequestBody Task updatedTask) {
         return service.updateTask(id, updatedTask);
     }
 
-    // ✅ Delete a task
+    // Delete a task
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.deleteTask(id);

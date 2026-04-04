@@ -17,7 +17,7 @@ public class TaskService {
         this.repo = repo;
     }
 
-    // ✅ CREATE TASK
+    // CREATE TASK
     public Task createTask(Task t) {
         if (t.getDueDate() != null &&
                 t.getDueDate().isBefore(LocalDate.now().plusDays(2))) {
@@ -30,25 +30,25 @@ public class TaskService {
         return repo.save(t);
     }
 
-    // ✅ GET ALL TASKS
+    // GET ALL TASKS
     public List<Task> getAllTasks() {
         return repo.findAll();
     }
 
-    // ✅ COMPLETE TASK
+    // COMPLETE TASK
     public Task completeTask(Long id) {
         Task t = repo.findById(id).orElseThrow();
         t.setCompleted(true);
         return repo.save(t);
     }
 
-    // 🔥 SMART LOGIC ENGINE
+    // SMART LOGIC ENGINE
     private void applySmartLogic(Task task) {
         setPriority(task);
         categorize(task);
     }
 
-    // ✅ PRIORITY LOGIC
+    // PRIORITY LOGIC
     private void setPriority(Task task) {
         if (task.getDueDate() == null) {
             task.setPriority("LOW");
@@ -63,7 +63,7 @@ public class TaskService {
         else task.setPriority("LOW");
     }
 
-    // ✅ CATEGORY LOGIC
+    // CATEGORY LOGIC
     private void categorize(Task task) {
         if (task.getTitle() == null) return;
 
@@ -78,7 +78,7 @@ public class TaskService {
         }
     }
 
-    // ✅ STATS
+    // STATS
     public Map<String, Object> getStats() {
         List<Task> all = repo.findAll();
 
@@ -95,7 +95,7 @@ public class TaskService {
         return stats;
     }
 
-    // ✅ AI SUGGESTION
+    // AI SUGGESTION
     public Task generateSuggestion() {
         String[] suggestions = {
                 "Review notes",
@@ -118,7 +118,7 @@ public class TaskService {
         return repo.save(t);
     }
 
-    // ✅ NOTIFICATIONS (DUE SOON)
+    // NOTIFICATIONS (DUE SOON)
     public List<Task> getDueSoonTasks() {
         List<Task> tasks = repo.findByCompletedFalse();
         List<Task> dueSoon = new ArrayList<>();
@@ -138,7 +138,7 @@ public class TaskService {
         return dueSoon;
     }
 
-    // ✅ UPDATE TASK
+    // UPDATE TASK
     public Task updateTask(Long id, Task updated) {
         Task existing = repo.findById(id).orElseThrow();
 
@@ -154,7 +154,7 @@ public class TaskService {
         return repo.save(existing);
     }
 
-    // ✅ DELETE EXPIRED TASKS (Scheduler uses this)
+    // DELETE EXPIRED TASKS (Scheduler uses this)
     public void deleteExpiredTasks() {
         List<Task> tasks = repo.findAll();
         LocalDate today = LocalDate.now();
@@ -166,7 +166,7 @@ public class TaskService {
         }
     }
 
-    // ✅ DELETE TASK (Manual delete from frontend)
+    // DELETE TASK (Manual delete from frontend)
     public void deleteTask(Long id) {
         repo.deleteById(id);
     }

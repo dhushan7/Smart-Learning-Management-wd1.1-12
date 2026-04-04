@@ -35,7 +35,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* LEFT: STATS */}
+        {/* STATS */}
         <div className="grid grid-cols-1 gap-4">
 
           <div className="bg-white/70 text-indigo-900 p-4 rounded-xl shadow">
@@ -70,7 +70,7 @@ export default function Dashboard() {
 
         </div>
 
-        {/* RIGHT: DONUT CHART */}
+        {/* DONUT CHART */}
         <div className="flex items-center justify-center bg-white/70 rounded-xl shadow p-4">
 
           <ResponsiveContainer width="100%" height={220}>

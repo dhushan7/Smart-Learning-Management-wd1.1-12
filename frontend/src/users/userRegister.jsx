@@ -24,7 +24,7 @@ export default function UserRegister({ closeModal, openLogin }) {
 
   const [showUserLogin, setShowUserLogin] = useState(false);
 
-  // username availability
+  // USERNAME STATE
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
 
@@ -59,7 +59,7 @@ export default function UserRegister({ closeModal, openLogin }) {
     setStrength(score);
   };
 
-  // timer
+  // TIMER
   useEffect(() => {
     let interval;
     if (timer > 0) {
@@ -68,10 +68,15 @@ export default function UserRegister({ closeModal, openLogin }) {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // handle change
+  // INPUT CHANGE
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
+
+    if (e.target.name === "username") {
+      setUsernameAvailable(null); // reset when typing
+    }
   };
 
   const handlePasswordChange = (val) => {
@@ -79,15 +84,15 @@ export default function UserRegister({ closeModal, openLogin }) {
     calculateStrength(val);
   };
 
-  // CHECK USERNAME EXISTS
+  // USERNAME CHECK (API)
   const checkUsername = async (username) => {
-    if (!username) return;
+    if (!username) return false;
 
     setUsernameChecking(true);
 
     try {
       const res = await fetch(
-        `${BASE_URL}/user/check-username?username=${username}`
+        `${BASE_URL}/user/check-username/${username}`
       );
 
       const data = await res.text();
@@ -95,9 +100,11 @@ export default function UserRegister({ closeModal, openLogin }) {
       if (res.ok) {
         setUsernameAvailable(true);
         setErrors((prev) => ({ ...prev, username: "" }));
+        return true;
       } else {
         setUsernameAvailable(false);
         setErrors((prev) => ({ ...prev, username: data }));
+        return false;
       }
     } catch {
       setErrors((prev) => ({
@@ -105,12 +112,13 @@ export default function UserRegister({ closeModal, openLogin }) {
         username: "Cannot check username",
       }));
       setUsernameAvailable(false);
+      return false;
+    } finally {
+      setUsernameChecking(false);
     }
-
-    setUsernameChecking(false);
   };
 
-  // validations
+  // VALIDATION
   const validate = () => {
     const err = {};
 
@@ -136,19 +144,19 @@ export default function UserRegister({ closeModal, openLogin }) {
     return err;
   };
 
-  // OTP send
+  // SEND OTP
   const sendOTP = async () => {
     const validationErrors = validate();
 
-    if (validationErrors.username) {
+    if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    if (usernameAvailable === false) {
-      setErrors({ username: "Username already exists" });
-      return;
-    }
+    // 🔥 CHECK USERNAME BEFORE OTP
+    const isAvailable = await checkUsername(formData.username);
+
+    if (!isAvailable) return;
 
     setLoading(true);
     setErrors({});
@@ -177,11 +185,12 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
-  // register
+  // REGISTER
   const handleRegister = async (e) => {
     e.preventDefault();
 
     const validationErrors = validate();
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
@@ -225,7 +234,7 @@ export default function UserRegister({ closeModal, openLogin }) {
     setLoading(false);
   };
 
-  // login modal
+  // LOGIN SWITCH
   if (showUserLogin) {
     return <Login closeModal={() => setShowUserLogin(false)} />;
   }

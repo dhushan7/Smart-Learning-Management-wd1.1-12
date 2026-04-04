@@ -139,7 +139,7 @@ export default function EditProfile({ closeModal }) {
         
         {/* BACKDROP */}
         <div
-        className="absolute rounded-3xl inset-0 bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200"
+        className="absolute rounded-3xl inset-0 bg-gradient-to-br from-indigo-200 via-blue-200 to-gray-200"
         onClick={closeModal}
         />
         <div
@@ -165,7 +165,7 @@ export default function EditProfile({ closeModal }) {
         {/* HEADER */}
         <div className="relative flex items-center justify-center px-6 py-4 border-b border-white/20">
             <h2 className="text-black font-semibold text-2xl">
-            ✨ Edit Profile
+            Edit Profile
             </h2>
 
             <button

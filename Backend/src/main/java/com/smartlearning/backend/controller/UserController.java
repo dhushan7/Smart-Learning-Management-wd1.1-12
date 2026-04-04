@@ -36,8 +36,12 @@ public class UserController {
     // register (std only)
 
 
-    @GetMapping("/check-username")
-    public ResponseEntity<?> checkUsername(@RequestParam String username) {
+    @GetMapping("/check-username/{username}")
+    public ResponseEntity<?> isUsernameAvailable(@PathVariable String username) {
+
+        if (username == null || username.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username is required");
+        }
 
         boolean exists = userRepository.existsByUsername(username);
 

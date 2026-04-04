@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
-/* ---------------- FLOATING INPUT ---------------- */
+// FLOATING INPUT 
 const FloatingLabelInput = ({ name, type = "text", label, value, onChange, required }) => (
     <div className="relative w-full">
         <input
@@ -26,7 +26,7 @@ const FloatingLabelInput = ({ name, type = "text", label, value, onChange, requi
     </div>
 );
 
-/* ---------------- FLOATING SELECT ---------------- */
+// FLOATING SELECT 
 const FloatingLabelSelect = ({ name, label, options, value, onChange }) => (
     <div className="relative w-full mt-2">
         <select
@@ -56,7 +56,7 @@ const FloatingLabelSelect = ({ name, label, options, value, onChange }) => (
     </div>
 );
 
-/* ---------------- DATE INPUT ---------------- */
+// DATE INPUT 
 const DueDateInput = ({ value, onChange }) => {
     const today = new Date().toISOString().split("T")[0];
 
@@ -77,7 +77,7 @@ const DueDateInput = ({ value, onChange }) => {
     );
 };
 
-/* ---------------- MAIN COMPONENT ---------------- */
+// MAIN COMPONENT 
 export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
 
     const [formData, setFormData] = useState({
@@ -92,7 +92,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
     const [success, setSuccess] = useState("");
     const [loadingAI, setLoadingAI] = useState(false);
 
-    /* ---------------- PREFILL FOR EDIT ---------------- */
+    // PREFILL FOR EDIT
     useEffect(() => {
         if (editTask) {
             setFormData({
@@ -105,7 +105,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
         }
     }, [editTask]);
 
-    /* ---------------- INPUT CHANGE ---------------- */
+    // INPUT CHANGE
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
 
@@ -115,7 +115,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
         }));
     };
 
-    /* ---------------- AI GENERATE ---------------- */
+    // AI GENERATE
     const handleAIGenerate = async () => {
         setLoadingAI(true);
         setError("");
@@ -141,7 +141,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
         }
     };
 
-    /* ---------------- SUBMIT (CREATE + UPDATE) ---------------- */
+    // CREATE + UPDATE 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -193,7 +193,6 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit }) {
         }
     };
 
-    /* ---------------- UI ---------------- */
     return (
         <div className="w-full max-w-lg p-6 rounded-2xl bg-white/20 backdrop-blur-xl border shadow-xl relative">
 
