@@ -1,124 +1,96 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = "http://localhost:8080/api";
+const CURRENT_USER = "STU-2026-001";
 
 export default function CreditAwardingPage() {
-  const [resources, setResources] = useState([]);
   const [totalCredits, setTotalCredits] = useState(0);
+  const [history, setHistory] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
-  const [completedIds, setCompletedIds] = useState({});
 
   const loadData = useCallback(async () => {
-    await Promise.all([loadResources(), loadCredits()]);
+    try {
+      const [credRes, histRes] = await Promise.all([
+        fetch(`${API_BASE}/credits/student/${CURRENT_USER}`),
+        fetch(`${API_BASE}/credits/history/${CURRENT_USER}`),
+      ]);
+      if (credRes.ok) { const d = await credRes.json(); setTotalCredits(d.totalCredits ?? 0); }
+      if (histRes.ok) setHistory(await histRes.json());
+      setBackendStatus("Online: API connected");
+    } catch { setBackendStatus("Offline: backend unavailable"); }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const sortedResources = useMemo(
-    () => [...resources].sort((a, b) => Number(b.id) - Number(a.id)),
-    [resources]
-  );
-
-  async function loadResources() {
-    try {
-      const response = await fetch(`${API_BASE}/resources`);
-      if (!response.ok) {
-        throw new Error("Resource API failed");
-      }
-      const data = await response.json();
-      setResources(data || []);
-      setBackendStatus("Online: API connected");
-    } catch (error) {
-      setResources((prev) => prev);
-      setBackendStatus("Offline: using local fallback");
-    }
-  }
-
-  async function loadCredits() {
-    try {
-      const response = await fetch(`${API_BASE}/credits`);
-      if (!response.ok) {
-        throw new Error("Credit API failed");
-      }
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
-        setTotalCredits(Number(data[0].totalCredits || 0));
-      } else {
-        setTotalCredits(0);
-      }
-    } catch (error) {
-      setTotalCredits((prev) => prev);
-    }
-  }
-
-  async function markAsFinished(resourceId) {
-    if (completedIds[resourceId]) {
-      return;
-    }
-
-    const creditGain = 10;
-    const newCredits = totalCredits + creditGain;
-
-    setTotalCredits(newCredits);
-    setCompletedIds((prev) => ({ ...prev, [resourceId]: true }));
-
-    try {
-      const response = await fetch(`${API_BASE}/credits`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentId: "STU-2026-001",
-          totalCredits: newCredits,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Credit update failed");
-      }
-
-      setBackendStatus("Online: API connected");
-    } catch (error) {
-      setBackendStatus("Offline: using local fallback");
-      alert("Backend unavailable. Credits updated in local state for demo continuity.");
-    }
+  function formatDate(iso) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
   }
 
   return (
     <main className="mx-auto mt-6 max-w-6xl px-4 pb-10 text-slate-800">
       <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        {/* Header */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-3xl font-bold text-emerald-800">Credit Awarding System</h2>
-            <p className="text-sm text-slate-600">Track and increase student credits when tasks are finished</p>
+            <h2 className="font-display text-3xl font-bold text-emerald-800">My Credits</h2>
+            <p className="text-sm text-slate-500">Your total credits and earning history — {CURRENT_USER}</p>
           </div>
-          <p className="rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-800">Status: {backendStatus}</p>
+          <p className="rounded-md bg-emerald-50 px-3 py-1 text-xs text-emerald-800">{backendStatus}</p>
         </div>
 
-        <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Current Credits</p>
-          <p className="font-display text-4xl font-extrabold text-emerald-900">{totalCredits}</p>
+        {/* Total Credits */}
+        <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Total Credits</p>
+          <p className="font-display text-6xl font-extrabold text-emerald-900">{totalCredits}</p>
+          <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-emerald-200">
+            <div className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+              style={{ width: `${Math.min(totalCredits, 100)}%` }} />
+          </div>
+          <p className="mt-1 text-xs text-emerald-600">
+            💡 Download a resource to earn +2 credits automatically.
+          </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {sortedResources.map((resource) => (
-            <article key={resource.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-base font-bold capitalize">{resource.title}</h3>
-              <p className="text-xs uppercase tracking-wide text-emerald-700">{resource.category}</p>
-              <p className="mt-1 text-sm text-slate-700">{resource.description}</p>
-
-              <button
-                type="button"
-                disabled={Boolean(completedIds[resource.id])}
-                onClick={() => markAsFinished(resource.id)}
-                className="mt-3 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-emerald-700 disabled:bg-emerald-300"
-              >
-                {completedIds[resource.id] ? "Finished" : "Mark as Finished"}
-              </button>
-            </article>
-          ))}
-        </div>
+        {/* Credit History */}
+        <h3 className="mb-3 font-bold text-emerald-800">Credit History</h3>
+        {history.length === 0 ? (
+          <p className="rounded-xl border border-slate-100 bg-slate-50 py-10 text-center text-sm text-slate-400">
+            No credits earned yet. Start by completing resources!
+          </p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-slate-100">
+            <table className="w-full text-sm">
+              <thead className="bg-emerald-50 text-xs uppercase tracking-wide text-emerald-700">
+                <tr>
+                  <th className="px-4 py-3 text-left">Activity</th>
+                  <th className="px-4 py-3 text-center">Credits</th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-center">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((tx, i) => (
+                  <tr key={tx.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                    <td className="px-4 py-2 font-medium">{tx.activity}</td>
+                    <td className="px-4 py-2 text-center font-bold text-emerald-600">+{tx.credits}</td>
+                    <td className="px-4 py-2 text-xs text-slate-400">{formatDate(tx.awardedAt)}</td>
+                    <td className="px-4 py-2 text-center">
+                      <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        tx.type === "AUTO_DOWNLOAD" ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                      }`}>
+                        {tx.type === "AUTO_DOWNLOAD" ? "Auto" : "Manual"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </main>
   );
