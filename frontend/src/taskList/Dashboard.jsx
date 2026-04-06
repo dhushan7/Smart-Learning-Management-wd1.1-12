@@ -4,6 +4,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 export default function Dashboard() {
   const [stats, setStats] = useState({});
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const email = user?.email;
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
     const email = user?.email;

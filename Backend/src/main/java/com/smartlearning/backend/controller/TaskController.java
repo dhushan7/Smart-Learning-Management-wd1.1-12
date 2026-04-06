@@ -43,10 +43,10 @@ public class TaskController {
         return service.getStatsByUser(email);
     }
 
-    // NEW ENDPOINTS FOR NOTIFICATIONS
-    @PutMapping("/{id}/readNotification")
-    public Task readNotification(@PathVariable Long id) {
-        return service.markNotificationRead(id);
+    // Add this inside TaskController
+    @GetMapping("/notifications")
+    public List<Task> getNotifications(@RequestParam String email) {
+        return service.getDueSoonTasks(email);
     }
 
     @PutMapping("/{id}/dismissNotification")

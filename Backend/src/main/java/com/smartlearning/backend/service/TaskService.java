@@ -16,8 +16,10 @@ public class TaskService {
 
     private SimpMessagingTemplate messagingTemplate;
 
-    public TaskService(TaskRepository repo) {
+    // Update the constructor to inject both dependencies
+    public TaskService(TaskRepository repo, SimpMessagingTemplate messagingTemplate) {
         this.repo = repo;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // CREATE TASK (accept email)
