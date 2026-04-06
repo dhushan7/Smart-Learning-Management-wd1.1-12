@@ -52,6 +52,7 @@
   min-height: 100vh;
   background: #f4f7fb;
   padding: 30px 15px;
+  margin-top: 10vh;
 }
 
 .chat-container {
