@@ -14,54 +14,51 @@ public class TaskController {
 
     private final TaskService service;
 
-    // Constructor Injection
     public TaskController(TaskService service) {
         this.service = service;
     }
 
-    // Create a new task
     @PostMapping
-    public Task create(@RequestBody Task t) {
-        return service.createTask(t);
+    public Task create(@RequestBody Task t, @RequestParam String email) {
+        return service.createTask(t, email);
     }
 
-    // Get all tasks
     @GetMapping
-    public List<Task> all() {
-        return service.getAllTasks();
+    public List<Task> all(@RequestParam String email) {
+        return service.getTasksByUser(email);
     }
 
-    // Mark task as completed
     @PutMapping("/{id}/complete")
     public Task complete(@PathVariable Long id) {
         return service.completeTask(id);
     }
 
-    // AI / auto suggestion (or random task)
     @PostMapping("/suggest")
     public Task suggest() {
         return service.generateSuggestion();
     }
 
-    // Dashboard stats
     @GetMapping("/stats")
-    public Map<String, Object> stats() {
-        return service.getStats();
+    public Map<String, Object> stats(@RequestParam String email) {
+        return service.getStatsByUser(email);
     }
 
-    // Notifications (due soon tasks)
-    @GetMapping("/notifications")
-    public List<Task> notifications() {
-        return service.getDueSoonTasks();
+    // NEW ENDPOINTS FOR NOTIFICATIONS
+    @PutMapping("/{id}/readNotification")
+    public Task readNotification(@PathVariable Long id) {
+        return service.markNotificationRead(id);
     }
 
-    // Update task
+    @PutMapping("/{id}/dismissNotification")
+    public Task dismissNotification(@PathVariable Long id) {
+        return service.dismissNotification(id);
+    }
+
     @PutMapping("/{id}")
     public Task update(@PathVariable Long id, @RequestBody Task updatedTask) {
         return service.updateTask(id, updatedTask);
     }
 
-    // Delete a task
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.deleteTask(id);

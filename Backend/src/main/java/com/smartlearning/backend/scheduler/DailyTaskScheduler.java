@@ -13,20 +13,19 @@ public class DailyTaskScheduler {
         this.service = service;
     }
 
-    // Runs every day at 8:00 AM
     @Scheduled(cron = "0 0 8 * * ?")
     public void morningAI() {
-        service.generateSuggestion();
+        System.out.println("Morning scheduler running - AI suggestion skipped");
     }
 
-    // Runs every day at 9:00 AM
+    // NOTIFICATIONS (CORRECT)
     @Scheduled(cron = "0 0 9 * * ?")
     public void notifyUsers() {
-        service.getDueSoonTasks();
+        service.processAllUsersNotifications();
     }
 
-    // Runs every day at 12:00 AM (midnight)
-    @Scheduled(cron = "0 0 0 * * ?")
+    // CLEANUP EXPIRED TASKS
+    @Scheduled(cron = "0 00 00 * * ?", zone = "Asia/Colombo")
     public void removeExpiredTasks() {
         service.deleteExpiredTasks();
     }
