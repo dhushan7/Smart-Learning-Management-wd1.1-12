@@ -2,6 +2,7 @@ package com.smartlearning.backend.service;
 
 import com.smartlearning.backend.model.Task;
 import com.smartlearning.backend.repository.TaskRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -13,12 +14,16 @@ public class TaskService {
 
     private final TaskRepository repo;
 
+    private SimpMessagingTemplate messagingTemplate;
+
     public TaskService(TaskRepository repo) {
         this.repo = repo;
     }
 
-    // CREATE TASK
-    public Task createTask(Task t) {
+    // CREATE TASK (accept email)
+    public Task createTask(Task t, String email) {
+        t.setOwnerEmail(email);
+
         if (t.getDueDate() != null &&
                 t.getDueDate().isBefore(LocalDate.now().plusDays(2))) {
             t.setPriority("HIGH");
@@ -31,8 +36,8 @@ public class TaskService {
     }
 
     // GET ALL TASKS
-    public List<Task> getAllTasks() {
-        return repo.findAll();
+    public List<Task> getTasksByUser(String email) {
+        return repo.findByOwnerEmail(email);
     }
 
     // COMPLETE TASK
@@ -69,22 +74,26 @@ public class TaskService {
 
         String t = task.getTitle().toLowerCase();
 
-        if (t.contains("study") || t.contains("exam")) {
-            task.setCategory("ACADEMIC");
-        } else if (t.contains("meeting") || t.contains("project")) {
-            task.setCategory("WORK");
-        } else {
-            task.setCategory("PERSONAL");
-        }
+//        if (t.contains("study") || t.contains("exam")) {
+//            task.setCategory("ACADEMIC");
+//        } else if (t.contains("meeting") || t.contains("project")) {
+//            task.setCategory("WORK");
+//        } else {
+//            task.setCategory("PERSONAL");
+//        }
     }
 
     // STATS
-    public Map<String, Object> getStats() {
-        List<Task> all = repo.findAll();
+    public Map<String, Object> getStatsByUser(String email) {
+
+        List<Task> all = repo.findByOwnerEmail(email);
 
         long completed = all.stream().filter(Task::isCompleted).count();
         long pending = all.size() - completed;
-        int percent = all.isEmpty() ? 0 : (int) ((completed * 100) / all.size());
+
+        int percent = all.isEmpty()
+                ? 0
+                : (int) ((completed * 100) / all.size());
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("total", all.size());
@@ -97,6 +106,7 @@ public class TaskService {
 
     // AI SUGGESTION
     public Task generateSuggestion() {
+
         String[] suggestions = {
                 "Review notes",
                 "Plan tomorrow",
@@ -113,29 +123,52 @@ public class TaskService {
         t.setSuggestionSource("AI");
         t.setDueDate(LocalDate.now());
 
+        t.setOwnerEmail("system");
+
         applySmartLogic(t);
 
         return repo.save(t);
     }
 
     // NOTIFICATIONS (DUE SOON)
-    public List<Task> getDueSoonTasks() {
-        List<Task> tasks = repo.findByCompletedFalse();
+    public List<Task> getDueSoonTasks(String email) {
+        List<Task> tasks = repo.findByOwnerEmail(email);
         List<Task> dueSoon = new ArrayList<>();
 
         for (Task t : tasks) {
-            if (t.getDueDate() != null && !t.isNotified()) {
-
+            if (t.getDueDate() != null && !t.isNotificationDismissed() && !t.isCompleted()) {
                 long days = LocalDate.now().until(t.getDueDate(), ChronoUnit.DAYS);
-
                 if (days <= 1) {
-                    t.setNotified(true);
-                    repo.save(t);
+                    if (!t.isNotified()) {
+                        t.setNotified(true);
+                        repo.save(t);
+                    }
                     dueSoon.add(t);
                 }
             }
         }
         return dueSoon;
+    }
+
+    // MARK NOTIFICATION AS READ
+    public Task markNotificationRead(Long id) {
+        Task t = repo.findById(id).orElseThrow();
+        t.setNotificationRead(true);
+        return repo.save(t);
+    }
+
+    // DISMISS/DELETE NOTIFICATION
+    public Task dismissNotification(Long id) {
+        Task t = repo.findById(id).orElseThrow();
+        t.setNotificationDismissed(true);
+        return repo.save(t);
+    }
+
+    public void sendNotification(Task task) {
+        messagingTemplate.convertAndSend(
+                "/topic/notifications/" + task.getOwnerEmail(),
+                task
+        );
     }
 
     // UPDATE TASK
@@ -145,16 +178,16 @@ public class TaskService {
         existing.setTitle(updated.getTitle());
         existing.setDueDate(updated.getDueDate());
         existing.setCompleted(updated.isCompleted());
+
         existing.setCategory(updated.getCategory());
+
         existing.setNotified(updated.isNotified());
 
-        // re-apply smart logic
-        applySmartLogic(existing);
-
+        setPriority(existing);
         return repo.save(existing);
     }
 
-    // DELETE EXPIRED TASKS (Scheduler uses this)
+    // DELETE EXPIRED TASKS
     public void deleteExpiredTasks() {
         List<Task> tasks = repo.findAll();
         LocalDate today = LocalDate.now();
@@ -166,8 +199,15 @@ public class TaskService {
         }
     }
 
-    // DELETE TASK (Manual delete from frontend)
+    // DELETE TASK
     public void deleteTask(Long id) {
         repo.deleteById(id);
+    }
+
+    public void processAllUsersNotifications() {
+        List<String> users = repo.findAllDistinctUserEmails();
+        for (String email : users) {
+            getDueSoonTasks(email);
+        }
     }
 }
