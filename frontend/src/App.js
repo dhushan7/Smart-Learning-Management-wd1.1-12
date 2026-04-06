@@ -24,15 +24,14 @@ function App() {
                 <Navbar />
                 <AdminNavBar />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/quiz-bank" element={<QuizBank />} />
-        <Route path="/quiz/:id" element={<QuizAttempt />} />
-        <Route path="/quiz-result" element={<QuizResult />} />
-        <Route path="/chatbot" element={<CommunityChatbot />} />
-      </Routes>
                 <Routes>
                     <Route path="/" element={<Home />} />
+                    <Route path="/quiz-bank" element={<QuizBank />} />
+                    <Route path="/quiz/:id" element={<QuizAttempt />} />
+                    <Route path="/quiz-result" element={<QuizResult />} />
+                    <Route path="/chatbot" element={<CommunityChatbot />} />
+      
+                    
                     <Route
                         path="/dashboard"
                         element={

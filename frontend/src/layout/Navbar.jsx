@@ -15,6 +15,9 @@ export default function Navbar() {
   const menuRef = useRef();
 
   const user = JSON.parse(localStorage.getItem("user"));
+  
+  const scrollAbout = () => window.dispatchEvent(new Event("scroll-about"));
+  const scrollContact = () => window.dispatchEvent(new Event("scroll-contact"));
 
   const handleLogout = () => {
     localStorage.clear();
@@ -49,10 +52,24 @@ export default function Navbar() {
         <ul className="hidden md:flex space-x-8 items-center">
           {!role && (
             <>
-              <li><NavLink to="/">Home</NavLink></li>
-              <li><NavLink to="/about">About</NavLink></li>
-              <li><NavLink to="/contact">Contact</NavLink></li>
+              <li>
+                <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                  Home
+                </button>
+              </li>
+              <li>
+                <button onClick={() => window.dispatchEvent(new CustomEvent("scroll-about"))}>
+                  About
+                </button>
+              </li>
+
+              <li>
+                <button onClick={() => window.dispatchEvent(new CustomEvent("scroll-contact"))}>
+                  Contact
+                </button>
+              </li>
             </>
+
           )}
 
           {role === "Student" && (
