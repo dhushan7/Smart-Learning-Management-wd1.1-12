@@ -1,5 +1,7 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import UserRegister from "../users/userRegister";
+import Login from "../users/Login";
 import "../App.css";
 
 export default function Navbar() {
@@ -12,8 +14,7 @@ export default function Navbar() {
 
   const menuRef = useRef();
 
-  const user = JSON.parse(localStorage.getItem("user")); 
-  // expect: { username, email, profileImage }
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleLogout = () => {
     localStorage.clear();
@@ -21,7 +22,7 @@ export default function Navbar() {
     window.location.reload();
   };
 
-  // close dropdown on outside click
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -32,6 +33,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Hide navbar for admin roles
   if (role === "Admin" || role === "Academic Panel") {
     return null;
   }
@@ -40,17 +42,11 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 w-full bg-gray-900 text-white z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
+        {/* LOGO */}
         <h1 className="text-xl font-bold">Smart Learning</h1>
-    <nav className="navbar">
-      <div className="navbar-container">
-        <h1 className="navbar-title">Smart Learning</h1>
 
-        <ul className="navbar-links">
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/quiz-bank">Quiz Bank</Link></li>
-          <li><Link to="/chatbot">Chatbot</Link></li>
-        {/* LINKS */}
-        <ul className="hidden md:flex space-x-8">
+        {/* NAV LINKS */}
+        <ul className="hidden md:flex space-x-8 items-center">
           {!role && (
             <>
               <li><NavLink to="/">Home</NavLink></li>
@@ -63,30 +59,35 @@ export default function Navbar() {
             <>
               <li><NavLink to="/dashboard">Dashboard</NavLink></li>
               <li><NavLink to="/tasks">Tasks</NavLink></li>
+              <li><NavLink to="/quiz-bank">Quiz Bank</NavLink></li>
+              <li><NavLink to="/chatbot">Chatbot</NavLink></li>
             </>
           )}
         </ul>
 
-        <div className="navbar-buttons">
-          <button className="btn-outline">Login</button>
-          <button className="btn-primary">Sign Up</button>
-        
+        {/* RIGHT SIDE */}
         <div className="flex items-center space-x-4">
 
           {/* NOT LOGGED IN */}
           {!role && (
             <>
-              <button onClick={() => setShowLogin(true)} className="border px-4 py-1 rounded">
+              <button
+                onClick={() => setShowLogin(true)}
+                className="border px-4 py-1 rounded"
+              >
                 Login
               </button>
 
-              <button onClick={() => setShowRegister(true)} className="bg-sky-500 px-4 py-1 rounded">
+              <button
+                onClick={() => setShowRegister(true)}
+                className="bg-sky-500 px-4 py-1 rounded"
+              >
                 Sign Up
               </button>
             </>
           )}
 
-          {/* LOGGED IN USER PROFILE */}
+          {/* LOGGED IN USER */}
           {role && (
             <div className="relative" ref={menuRef}>
               
@@ -104,7 +105,6 @@ export default function Navbar() {
               {/* DROPDOWN */}
               {openProfileMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white text-black rounded-lg shadow-lg overflow-hidden">
-
                   <button
                     onClick={() => {
                       setOpenProfileMenu(false);
@@ -121,7 +121,6 @@ export default function Navbar() {
                   >
                     Logout
                   </button>
-
                 </div>
               )}
             </div>
@@ -132,7 +131,10 @@ export default function Navbar() {
       {/* LOGIN MODAL */}
       {showLogin && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowLogin(false)} />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowLogin(false)}
+          />
           <Login closeModal={() => setShowLogin(false)} />
         </div>
       )}
@@ -140,7 +142,10 @@ export default function Navbar() {
       {/* REGISTER MODAL */}
       {showRegister && (
         <div className="fixed inset-0 flex items-center justify-center z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowRegister(false)} />
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowRegister(false)}
+          />
           <UserRegister closeModal={() => setShowRegister(false)} />
         </div>
       )}
