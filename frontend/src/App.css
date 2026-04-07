@@ -19,8 +19,6 @@
 }
 
 body {
-  margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
@@ -29,7 +27,7 @@ a {
   text-decoration: none;
 }
 
-/* ===== NAVBAR ===== */
+/* ================= NAVBAR ================= */
 
 .navbar {
   background: var(--primary-dark);
@@ -54,26 +52,22 @@ a {
 .navbar-title {
   font-size: 22px;
   font-weight: 700;
-  color: white;
-  letter-spacing: 0.2px;
 }
 
 .navbar-links {
   list-style: none;
   display: flex;
   gap: 10px;
-  padding: 0;
   margin: 0;
+  padding: 0;
   align-items: center;
 }
 
 .navbar-links a {
   color: rgba(255, 255, 255, 0.92);
   font-weight: 500;
-  font-size: 15px;
   padding: 9px 14px;
   border-radius: 10px;
-  transition: all 0.2s ease;
 }
 
 .navbar-links a:hover {
@@ -93,7 +87,6 @@ a {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
 }
 
 .btn-outline {
@@ -102,33 +95,30 @@ a {
   color: white;
 }
 
-.btn-outline:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
 .btn-primary {
   background: var(--secondary);
   color: white;
   border: none;
 }
 
-.btn-primary:hover {
-  background: #1d4ed8;
-}
+/* ================= PAGE LAYOUT ================= */
 
-/* ===== PAGE LAYOUT ===== */
+.quizbank-page {
+  width: 100%;
+}
 
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: 90px 24px 40px;
 }
 
 .page-title {
   font-size: 34px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   color: var(--primary-dark);
+  text-align: center;
 }
 
 .page-subtitle {
@@ -137,14 +127,18 @@ a {
   font-size: 16px;
   line-height: 1.6;
   max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
 }
 
-/* ===== QUIZ GRID ===== */
+/* ================= QUIZ GRID ================= */
 
 .quiz-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 22px;
+  justify-items: center;
 }
 
 .quiz-card {
@@ -154,6 +148,8 @@ a {
   padding: 22px;
   box-shadow: var(--shadow);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  max-width: 340px;
 }
 
 .quiz-card:hover {
@@ -162,17 +158,14 @@ a {
 }
 
 .quiz-card h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 24px;
-  color: var(--text);
+  margin: 0 0 10px;
+  font-size: 22px;
 }
 
 .quiz-card p {
   margin: 10px 0;
   font-size: 15px;
   color: var(--text-soft);
-  line-height: 1.6;
 }
 
 .quiz-button {
@@ -183,16 +176,14 @@ a {
   padding: 11px 16px;
   border-radius: 10px;
   cursor: pointer;
-  font-size: 15px;
   font-weight: 600;
-  transition: background 0.2s ease;
 }
 
 .quiz-button:hover {
   background: #1d4ed8;
 }
 
-/* ===== QUESTION / ATTEMPT ===== */
+/* ================= QUESTION / RESULT ================= */
 
 .question-card {
   background: var(--surface);
@@ -209,8 +200,6 @@ a {
   font-size: 18px;
   color: var(--text);
 }
-
-/* ===== RESULT ===== */
 
 .result-box {
   background: var(--surface);
@@ -230,7 +219,7 @@ a {
   font-weight: 600;
 }
 
-/* ===== ERRORS ===== */
+/* ================= ERROR ================= */
 
 .error-box {
   background: var(--danger-bg);
@@ -239,8 +228,6 @@ a {
   padding: 13px 16px;
   border-radius: 10px;
   margin-bottom: 18px;
-  font-size: 15px;
-  font-weight: 500;
 }
 
 .question-error {
@@ -255,23 +242,9 @@ a {
   font-weight: 500;
 }
 
-/* ===== RESPONSIVE ===== */
+/* ================= RESPONSIVE ================= */
 
 @media (max-width: 768px) {
-  .navbar {
-    padding: 14px 18px;
-  }
-
-  .navbar-container {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .navbar-links {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
   .page-container {
     padding: 24px 16px;
   }
@@ -281,6 +254,6 @@ a {
   }
 
   .quiz-card h2 {
-    font-size: 21px;
+    font-size: 20px;
   }
 }
