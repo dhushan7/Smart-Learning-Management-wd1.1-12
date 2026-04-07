@@ -4,8 +4,14 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 export default function Dashboard() {
   const [stats, setStats] = useState({});
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const email = user?.email;
+
   useEffect(() => {
-    fetch("http://localhost:8086/tasks/stats")
+    const user = JSON.parse(localStorage.getItem("user"));
+    const email = user?.email;
+
+    fetch(`http://localhost:8086/tasks/stats?email=${email}`)
       .then(res => res.json())
       .then(setStats);
   }, []);
@@ -25,7 +31,7 @@ export default function Dashboard() {
 
   return (
     <div className="mb-6 p-6 rounded-2xl shadow-xl text-white
-      bg-gradient-to-br from-indigo-100 to-purple-200
+      bg-gradient-to-br from-blue-100 to-purple-100
       border border-white/30 backdrop-blur mt-10">
 
       {/* Title */}

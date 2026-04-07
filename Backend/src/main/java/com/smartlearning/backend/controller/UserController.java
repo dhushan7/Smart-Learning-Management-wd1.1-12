@@ -366,20 +366,31 @@ public class UserController {
 
 
     // delete user
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUserByEmail(
+            @RequestParam String email,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        try {
+            Optional<User> optionalUser = userRepository.findByEmail(email);
 
-        Optional<User> optionalUser = userRepository.findById(id);
+            if (optionalUser.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("User not found");
+            }
 
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("User not found");
+            String reason = body != null ? body.get("reason") : "No reason provided";
+
+            System.out.println("Deleting user: " + email + " | Reason: " + reason);
+
+            userRepository.delete(optionalUser.get());
+
+            return ResponseEntity.ok("User deleted successfully");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting user: " + e.getMessage());
         }
-
-        User target = optionalUser.get();
-        userRepository.deleteById(id);
-
-        return ResponseEntity.ok("User deleted successfully");
     }
 
 

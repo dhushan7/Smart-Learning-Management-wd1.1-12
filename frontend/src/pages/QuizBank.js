@@ -6,7 +6,7 @@ function QuizBank() {
   const navigate = useNavigate();
 
   return (
-    <div className="page-container">
+    <div className="page-container quizbank-page">
       <h1 className="page-title">Learning Material Quizzes</h1>
       <p className="page-subtitle">
         Test your knowledge after watching a video or reading lecture notes.

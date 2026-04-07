@@ -1,6 +1,9 @@
 .App {
   text-align: center;
 }
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 .App-logo {
   height: 40vmin;
@@ -16,10 +19,7 @@
   justify-content: center;
   font-size: calc(10px + 2vmin);
   color: white;
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+}
 /* Base styles (from CRA default) */
 body {
   margin: 0;
@@ -44,6 +44,7 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
   monospace;
+}
 }
 
 /* Slide-in animation */

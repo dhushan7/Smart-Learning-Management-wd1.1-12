@@ -9,6 +9,12 @@ export default function UsrProfile() {
   const [user, setUser] = useState(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(1);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+
+
   useEffect(() => {
     const raw = localStorage.getItem("user");
     const stored = raw ? JSON.parse(raw) : null;
@@ -54,6 +60,108 @@ export default function UsrProfile() {
               <EditProfile closeModal={() => setShowEditProfile(false)} />
             </div>
 
+          </div>
+        )}
+
+        {/* ✅ NEW: DELETE MODAL */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+
+            {/* BACKDROP */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowDeleteModal(false)}
+            />
+
+            {/* MODAL */}
+            <div className="relative z-50 bg-white/90 backdrop-blur-xl border border-gray-200 p-6 rounded-2xl w-[420px] shadow-2xl space-y-4">
+
+              {deleteStep === 1 && (
+                <>
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Why are you deleting your profile?
+                  </h2>
+
+                  <textarea
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-300"
+                    placeholder="Enter reason..."
+                  />
+
+                  <button
+                    onClick={() => {
+                      if (!deleteReason.trim()) {
+                        alert("Please enter a reason");
+                        return;
+                      }
+                      setDeleteStep(2);
+                    }}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-xl transition"
+                  >
+                    Next
+                  </button>
+                </>
+              )}
+
+              {deleteStep === 2 && (
+                <>
+                  <h2 className="text-lg font-bold text-red-600">
+                    Final Confirmation
+                  </h2>
+
+                  <p className="text-sm text-gray-600">
+                    This action is permanent. Type <b>DELETE</b> to confirm.
+                  </p>
+
+                  <input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-xl mt-2"
+                    placeholder="Type DELETE"
+                  />
+
+                  <button
+                    disabled={confirmText !== "DELETE"}
+                    onClick={async () => {
+                      try {
+                        const raw = localStorage.getItem("user");
+                        const stored = raw ? JSON.parse(raw) : null;
+
+                        await axios.delete(
+                          `http://localhost:8086/user/delete?email=${stored.email}`,
+                          {
+                            data: { reason: deleteReason },
+                          }
+                        );
+
+                        localStorage.clear();
+                        navigate("/");
+                        window.location.reload();
+                      } catch (err) {
+                        console.log(err);
+                        alert("Delete failed");
+                      }
+                    }}
+                    className={`w-full py-2 rounded-xl text-white transition ${
+                      confirmText === "DELETE"
+                        ? "bg-red-600 hover:bg-red-700"
+                        : "bg-red-300 cursor-not-allowed"
+                    }`}
+                  >
+                    Delete My Account
+                  </button>
+
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="w-full bg-gray-200 hover:bg-gray-300 py-2 rounded-xl transition"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+
+            </div>
           </div>
         )}
 
@@ -121,6 +229,19 @@ export default function UsrProfile() {
           >
             Logout
           </button>
+
+          <button
+            onClick={() => {
+              setShowDeleteModal(true);
+              setDeleteStep(1);
+              setDeleteReason("");
+              setConfirmText("");
+            }}
+            className="w-full bg-gray-500 text-white py-2 backdrop-blur-md rounded-xl shadow-md hover:bg-gray-800 transition"
+          >
+            Delete Profile
+          </button>
+
 
         </div>
 
