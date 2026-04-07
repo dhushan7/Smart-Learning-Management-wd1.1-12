@@ -60,7 +60,7 @@ export default function Home() {
         <div className="max-w-3xl bg-white shadow-lg rounded-2xl p-8">
           <h1 className="text-3xl font-bold mb-4">About Us</h1>
           <p className="text-gray-600 leading-relaxed">
-            Welcome to our platform! We help students, admins, and academic staff
+            Welcome to our Smart Learning! We help students, academic staff
             manage learning activities efficiently. Our system provides task
             management, resources, analytics, and more in one place.
           </p>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import UserRegister from "../users/userRegister";
 import Login from "../users/Login";
 import "../App.css";
@@ -15,9 +15,6 @@ export default function Navbar() {
   const menuRef = useRef();
 
   const user = JSON.parse(localStorage.getItem("user"));
-  
-  const scrollAbout = () => window.dispatchEvent(new Event("scroll-about"));
-  const scrollContact = () => window.dispatchEvent(new Event("scroll-contact"));
 
   const handleLogout = () => {
     localStorage.clear();
