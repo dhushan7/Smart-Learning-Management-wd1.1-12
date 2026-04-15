@@ -88,7 +88,7 @@ export default function AdminCreateUser() {
           role: "Student",
         });
 
-        // ✅ Navigate after success
+        // Navigate after success
         setTimeout(() => {
           navigate("/admin/users");
         }, 1000);

@@ -6,6 +6,7 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:808
 const AI_HISTORY_LIMIT = 6;
 
 function CommunityChatbot() {
+  const [isOpen, setIsOpen] = useState(false); // Controls if the chat window is open
   const [messages, setMessages] = useState([
     {
       sender: "bot",
@@ -30,9 +31,10 @@ function CommunityChatbot() {
     return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
+  // Added isOpen to ensure it scrolls down when the window is toggled open
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, isOpen]); 
 
   const normalizeText = (text) => text.toLowerCase().trim();
 
@@ -134,26 +136,8 @@ function CommunityChatbot() {
     };
   };
 
-  const shouldUseLocalKnowledge = (messageText, localResponse) => {
-    const normalizedMessage = normalizeText(messageText);
-    const platformTerms = [
-      "smart learning",
-      "website",
-      "platform",
-      "quiz",
-      "result",
-      "assignment",
-      "course",
-      "chatbot",
-      "login",
-      "deadline",
-      "navigation"
-    ];
-
-    const hasPlatformTerms = platformTerms.some((term) => normalizedMessage.includes(term));
-    return localResponse.score >= 4 || hasPlatformTerms;
-  };
-
+  // Updated sendMessage from the bottom code snippet
+  // It now always tries the backend first, using localResponse as a fallback
   const sendMessage = async (messageText) => {
     if (!messageText.trim()) return;
 
@@ -169,19 +153,6 @@ function CommunityChatbot() {
 
     try {
       const localResponse = getLocalBotResponse(messageText);
-      if (shouldUseLocalKnowledge(messageText, localResponse)) {
-        const botMessage = {
-          sender: "bot",
-          text: localResponse.text,
-          time: getCurrentTime(),
-          suggestions: localResponse.suggestions
-        };
-
-        setMessages((prev) => [...prev, botMessage]);
-        setIsTyping(false);
-        return;
-      }
-
       const recentHistory = messages
         .filter((message) => message.sender === "user" || message.sender === "bot")
         .slice(-AI_HISTORY_LIMIT)
@@ -290,83 +261,94 @@ function CommunityChatbot() {
   ];
 
   return (
-    <div className="chatbot-page">
-      <div className="chat-container">
-        <div className="chat-header">
-          <div>
-            <h2>Community Chatbot</h2>
-            <p>Smart Learning Platform Assistant</p>
-          </div>
-          <button className="clear-btn" onClick={clearChat}>
-            Clear Chat
-          </button>
-        </div>
+    <div className="chatbot-floating-wrapper">
+      {/* THE FLOATING TOGGLE BUTTON */}
+      <button 
+        className={`chatbot-toggle-btn ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? "✕" : "💬"}
+      </button>
 
-        <div className="quick-actions">
-          {quickActions.map((action, index) => (
-            <button
-              key={index}
-              className="quick-action-btn"
-              onClick={() => handleSuggestionClick(action)}
-            >
-              {action}
+      {/* THE CHAT WINDOW */}
+      {isOpen && (
+        <div className="floating-chat-window">
+          <div className="chat-header">
+            <div>
+              <h2>Community Chatbot</h2>
+              <p>Smart Learning Platform Assistant</p>
+            </div>
+            <button className="clear-btn" onClick={clearChat}>
+              Clear Chat
             </button>
-          ))}
-        </div>
+          </div>
 
-        <div className="chat-box">
-          {messages.map((msg, index) => (
-            <div key={index} className={`message-wrapper ${msg.sender}`}>
-              <div className={`message ${msg.sender}`}>
-                <p className="message-text">
-                  {msg.text.split("\n").map((line, i) => (
-                    <span key={i}>
-                      {line}
-                      <br />
-                    </span>
-                  ))}
-                </p>
-                <span className="message-time">{msg.time}</span>
-              </div>
+          <div className="quick-actions">
+            {quickActions.map((action, index) => (
+              <button
+                key={index}
+                className="quick-action-btn"
+                onClick={() => handleSuggestionClick(action)}
+              >
+                {action}
+              </button>
+            ))}
+          </div>
 
-              {msg.sender === "bot" && msg.suggestions && msg.suggestions.length > 0 && (
-                <div className="suggestions">
-                  {msg.suggestions.map((suggestion, sIndex) => (
-                    <button
-                      key={sIndex}
-                      className="suggestion-btn"
-                      onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+          <div className="chat-box">
+            {messages.map((msg, index) => (
+              <div key={index} className={`message-wrapper ${msg.sender}`}>
+                <div className={`message ${msg.sender}`}>
+                  <p className="message-text">
+                    {msg.text.split("\n").map((line, i) => (
+                      <span key={i}>
+                        {line}
+                        <br />
+                      </span>
+                    ))}
+                  </p>
+                  <span className="message-time">{msg.time}</span>
                 </div>
-              )}
-            </div>
-          ))}
 
-          {isTyping && (
-            <div className="message-wrapper bot">
-              <div className="message bot typing">
-                <p>Typing...</p>
+                {msg.sender === "bot" && msg.suggestions && msg.suggestions.length > 0 && (
+                  <div className="suggestions">
+                    {msg.suggestions.map((suggestion, sIndex) => (
+                      <button
+                        key={sIndex}
+                        className="suggestion-btn"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            ))}
 
-          <div ref={chatEndRef}></div>
-        </div>
+            {isTyping && (
+              <div className="message-wrapper bot">
+                <div className="message bot typing">
+                  <p>Typing...</p>
+                </div>
+              </div>
+            )}
 
-        <div className="input-area">
-          <input
-            type="text"
-            placeholder="Ask about quizzes, assignments, results, login..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button onClick={handleSend}>Send</button>
+            <div ref={chatEndRef}></div>
+          </div>
+
+          <div className="input-area">
+            <input
+              type="text"
+              placeholder="Ask about quizzes, assignments, results, login..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button onClick={handleSend}>Send</button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

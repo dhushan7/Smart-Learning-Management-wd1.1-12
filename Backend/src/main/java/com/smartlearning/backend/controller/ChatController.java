@@ -37,13 +37,13 @@ public class ChatController {
             If the user asks something unrelated to the platform, answer briefly if it is simple small talk, otherwise guide them back to platform-related questions.
             """;
 
-    @Value("${openai.api.key:}")
+    @Value("${gemini.api.key:${openai.api.key:}}")
     private String apiKey;
 
-    @Value("${openai.api.url:https://api.openai.com/v1/responses}")
+    @Value("${gemini.api.url:${openai.api.url:https://generativelanguage.googleapis.com/v1beta/models}}")
     private String apiUrl;
 
-    @Value("${openai.model:gpt-4.1-mini}")
+    @Value("${gemini.model:${openai.model:gemini-2.5-flash}}")
     private String model;
 
     @PostMapping
@@ -56,7 +56,7 @@ public class ChatController {
         if (apiKey == null || apiKey.isBlank()) {
             return Map.of(
                     "reply", FALLBACK_REPLY,
-                    "error", "OpenAI API key is not configured on the backend."
+                    "error", "Gemini API key is not configured on the backend."
             );
         }
 
@@ -64,33 +64,34 @@ public class ChatController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
+        headers.set("x-goog-api-key", apiKey);
 
-        List<Map<String, Object>> inputMessages = buildInputMessages(request, userMessage);
+        List<Map<String, Object>> inputMessages = buildContents(request, userMessage);
 
-        Map<String, Object> requestBody = Map.of(
-                "model", model,
-                "instructions", SYSTEM_PROMPT,
-                "input", inputMessages
-        );
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("system_instruction", Map.of(
+                "parts", List.of(Map.of("text", SYSTEM_PROMPT))
+        ));
+        requestBody.put("contents", inputMessages);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        String endpoint = apiUrl + "/" + model + ":generateContent";
 
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(apiUrl, entity, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(endpoint, entity, Map.class);
             String reply = extractReply(response.getBody());
 
             if (reply == null || reply.isBlank()) {
                 return Map.of(
                         "reply", FALLBACK_REPLY,
-                        "error", "OpenAI response did not contain any text output."
+                        "error", "Gemini response did not contain any text output."
                 );
             }
 
             return Map.of("reply", reply);
         } catch (RestClientResponseException e) {
             String responseBody = e.getResponseBodyAsString();
-            String errorMessage = "OpenAI API request failed with status " + e.getStatusCode().value();
+            String errorMessage = "Gemini API request failed with status " + e.getStatusCode().value();
             if (responseBody != null && !responseBody.isBlank()) {
                 errorMessage += ": " + responseBody;
             }
@@ -102,13 +103,13 @@ public class ChatController {
         } catch (Exception e) {
             return Map.of(
                     "reply", FALLBACK_REPLY,
-                    "error", "OpenAI API request could not be completed: " + e.getMessage()
+                    "error", "Gemini API request could not be completed: " + e.getMessage()
             );
         }
     }
 
-    private List<Map<String, Object>> buildInputMessages(Map<String, String> request, String userMessage) {
-        List<Map<String, Object>> inputMessages = new ArrayList<>();
+    private List<Map<String, Object>> buildContents(Map<String, String> request, String userMessage) {
+        List<Map<String, Object>> contents = new ArrayList<>();
 
         for (int index = 1; index <= 6; index++) {
             String role = request.get("historyRole" + index);
@@ -129,17 +130,20 @@ public class ChatController {
                 continue;
             }
 
-            inputMessages.add(createInputMessage(normalizedRole, normalizedContent));
+            contents.add(createContent(
+                    "assistant".equals(normalizedRole) ? "model" : "user",
+                    normalizedContent
+            ));
         }
 
-        inputMessages.add(createInputMessage("user", userMessage));
-        return inputMessages;
+        contents.add(createContent("user", userMessage));
+        return contents;
     }
 
-    private Map<String, Object> createInputMessage(String role, String content) {
+    private Map<String, Object> createContent(String role, String content) {
         Map<String, Object> message = new HashMap<>();
         message.put("role", role);
-        message.put("content", content);
+        message.put("parts", List.of(Map.of("text", content)));
         return message;
     }
 
@@ -148,31 +152,35 @@ public class ChatController {
             return null;
         }
 
-        Object output = responseBody.get("output");
-        if (!(output instanceof List<?> outputItems)) {
+        Object candidates = responseBody.get("candidates");
+        if (!(candidates instanceof List<?> candidateItems)) {
             return null;
         }
 
         List<String> parts = new ArrayList<>();
 
-        for (Object outputItem : outputItems) {
-            if (!(outputItem instanceof Map<?, ?> itemMap)) {
+        for (Object candidateItem : candidateItems) {
+            if (!(candidateItem instanceof Map<?, ?> candidateMap)) {
                 continue;
             }
 
-            Object content = itemMap.get("content");
-            if (!(content instanceof List<?> contentItems)) {
+            Object content = candidateMap.get("content");
+            if (!(content instanceof Map<?, ?> contentMap)) {
                 continue;
             }
 
-            for (Object contentItem : contentItems) {
-                if (!(contentItem instanceof Map<?, ?> contentMap)) {
+            Object contentParts = contentMap.get("parts");
+            if (!(contentParts instanceof List<?> partItems)) {
+                continue;
+            }
+
+            for (Object contentItem : partItems) {
+                if (!(contentItem instanceof Map<?, ?> partMap)) {
                     continue;
                 }
 
-                Object type = contentMap.get("type");
-                Object text = contentMap.get("text");
-                if ("output_text".equals(type) && text instanceof String textValue && !textValue.isBlank()) {
+                Object text = partMap.get("text");
+                if (text instanceof String textValue && !textValue.isBlank()) {
                     parts.add(textValue.trim());
                 }
             }

@@ -62,8 +62,17 @@ export default function UserAdm() {
   const fetchUsers = async () => {
     try {
       const res = await axios.get(BASE_URL);
-      setUsers(res.data);
-      setFilteredUsers(res.data);
+      let fetchedUsers = res.data;
+
+      // ==========================================
+      // NEW LOGIC: Filter students for Academic Panel
+      // ==========================================
+      if (role === "Academic Panel") {
+        fetchedUsers = fetchedUsers.filter((u) => u.role === "Student");
+      }
+
+      setUsers(fetchedUsers);
+      setFilteredUsers(fetchedUsers);
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -160,13 +169,10 @@ export default function UserAdm() {
 
     try {
       await axios.delete(`${BASE_URL}/${id}`);
-
       showSuccess("Deleted!", "User has been removed successfully");
-
       fetchUsers();
     } catch (err) {
       console.error(err);
-
       Swal.fire("Error", "Failed to delete user", "error");
     }
   };
@@ -183,64 +189,59 @@ export default function UserAdm() {
     }
 
     const result = await Swal.fire({
-    title: "Save changes?",
-    text: "Do you want to update this user?",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Yes, update",
-    cancelButtonText: "Cancel",
+      title: "Save changes?",
+      text: "Do you want to update this user?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, update",
+      cancelButtonText: "Cancel",
 
-    background: "rgba(255,255,255,0.08)",
+      background: "rgba(255,255,255,0.08)",
 
-    backdrop: `
-      rgba(0,0,0,0.6)
-    `,
-
-    customClass: {
-      popup: `
-        rounded-2xl
-        border border-white/20
-        shadow-2xl
-        backdrop-blur-xl
-        bg-white/10
-        text-white
+      backdrop: `
+        rgba(0,0,0,0.6)
       `,
-      title: "text-white font-semibold",
-      htmlContainer: "text-white/80",
-      confirmButton: `
-        bg-indigo-600 hover:bg-indigo-700
-        text-white font-medium
-        px-4 py-2 rounded-lg
-        shadow-lg shadow-indigo-500/30 mr-3
-      `,
-      cancelButton: `
-        bg-white/10 hover:bg-white/20
-        text-white border border-white/20
-        px-4 py-2 rounded-lg
-      `,
-    },
 
-    buttonsStyling: false,
-  });
+      customClass: {
+        popup: `
+          rounded-2xl
+          border border-white/20
+          shadow-2xl
+          backdrop-blur-xl
+          bg-white/10
+          text-white
+        `,
+        title: "text-white font-semibold",
+        htmlContainer: "text-white/80",
+        confirmButton: `
+          bg-indigo-600 hover:bg-indigo-700
+          text-white font-medium
+          px-4 py-2 rounded-lg
+          shadow-lg shadow-indigo-500/30 mr-3
+        `,
+        cancelButton: `
+          bg-white/10 hover:bg-white/20
+          text-white border border-white/20
+          px-4 py-2 rounded-lg
+        `,
+      },
+
+      buttonsStyling: false,
+    });
 
     if (!result.isConfirmed) return;
 
     try {
       await axios.put(`${BASE_URL}/${editingUser.id}`, editingUser);
-
       setEditingUser(null);
-
       showSuccess("Updated!", "User details updated successfully");
-
       fetchUsers();
     } catch (err) {
       console.error(err);
-
       Swal.fire("Error", "Failed to update user", "error");
     }
   };
 
-  
   // Pagination
   const indexOfLast = currentPage * usersPerPage;
   const indexOfFirst = indexOfLast - usersPerPage;
@@ -260,29 +261,30 @@ export default function UserAdm() {
 
   return (
     <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 p-8 text-white">
-      
-
       <div className="flex justify-between items-center mb-8 mt-20">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        {/* Dynamic Header */}
+        <h1 className="text-3xl font-bold">
+          {role === "Academic Panel" ? "Review Students" : "Admin Dashboard"}
+        </h1>
 
         <div className="flex gap-3 items-center mb-10">
-        {/* CREATE STAFF BUTTON */}
-        {role === "Admin" && (
-          <button
-            onClick={() => navigate("/admin/create-staff")}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium shadow-lg shadow-indigo-500/30 transition"
-          >
-            + Create New User
-          </button>
-        )}
+          {/* CREATE STAFF BUTTON */}
+          {role === "Admin" && (
+            <button
+              onClick={() => navigate("/admin/create-staff")}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium shadow-lg shadow-indigo-500/30 transition"
+            >
+              + Create New User
+            </button>
+          )}
 
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 rounded-lg text-black w-80 focus:ring-2 focus:ring-indigo-500"
-        />
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="px-4 py-2 rounded-lg text-black w-80 focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
       </div>
 
@@ -328,7 +330,6 @@ export default function UserAdm() {
 
                     {/* action */}
                     <td className="flex gap-2 p-2">
-                      
                       {/* edit */}
                       {role === "Admin" && user.role !== "Student" && (
                         <button
@@ -348,29 +349,47 @@ export default function UserAdm() {
                           Delete
                         </button>
                       )}
+
+                      {/* Fallback text if user has no actions available */}
+                      {role === "Academic Panel" && (
+                        <span className="text-gray-400 text-sm italic">
+                          View Only
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
+                
+                {/* Fallback if no users are found after filtering */}
+                {currentUsers.length === 0 && (
+                   <tr>
+                     <td colSpan="6" className="text-center p-6 text-gray-400">
+                        No users found.
+                     </td>
+                   </tr>
+                )}
               </tbody>
             </table>
           </div>
 
           {/* pagination */}
-          <div className="flex justify-center mt-6 gap-2">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded-lg ${
-                  currentPage === i + 1
-                    ? "bg-indigo-600"
-                    : "bg-white/10 hover:bg-white/20"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6 gap-2">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-1 rounded-lg ${
+                    currentPage === i + 1
+                      ? "bg-indigo-600"
+                      : "bg-white/10 hover:bg-white/20"
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+          )}
         </>
       )}
 
