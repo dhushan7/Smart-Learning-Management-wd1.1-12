@@ -42,41 +42,35 @@ export default function AdminReports() {
 
   const fetchData = async () => {
     try {
-      // ================= USERS =================
       const usersRes = await axios.get(`${BASE_URL}/user`);
       const users = usersRes.data;
 
       setTotalUsers(users.length);
 
-      // ================= ROLE DISTRIBUTION =================
       const roleMap = {};
       users.forEach((u) => {
         roleMap[u.role] = (roleMap[u.role] || 0) + 1;
       });
 
-      const formattedRoles = Object.keys(roleMap).map((key) => ({
-        name: key,
-        value: roleMap[key],
-      }));
+      setRoleData(
+        Object.keys(roleMap).map((key) => ({
+          name: key,
+          value: roleMap[key],
+        }))
+      );
 
-      setRoleData(formattedRoles);
-
-      // ================= USER GROWTH (Mock fallback if no backend) =================
-      // Replace this with backend API later
       const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-      const growth = months.map((m, i) => ({
-        month: m,
-        users: Math.floor(users.length * ((i + 1) / 6)),
-      }));
+      setUserGrowthData(
+        months.map((m, i) => ({
+          month: m,
+          users: Math.floor(users.length * ((i + 1) / 6)),
+        }))
+      );
 
-      setUserGrowthData(growth);
-
-      // ================= QUIZ STATS (OPTIONAL API) =================
       try {
         const quizRes = await axios.get(`${BASE_URL}/quiz/stats`);
         setQuizStatsData(quizRes.data);
       } catch {
-        // fallback demo data
         setQuizStatsData([
           { subject: "Math", attempts: 120 },
           { subject: "Science", attempts: 90 },
@@ -84,7 +78,6 @@ export default function AdminReports() {
         ]);
       }
 
-      // ================= AVG SCORE (OPTIONAL) =================
       try {
         const avgRes = await axios.get(`${BASE_URL}/quiz/average-score`);
         setAvgScore(avgRes.data);
@@ -100,30 +93,30 @@ export default function AdminReports() {
   };
 
   const handleExport = () => {
-    alert("Export feature coming soon (PDF/CSV)");
+    alert("Export feature coming soon");
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen w-[83vw] ml-[17vw] flex items-center justify-center bg-slate-900 text-white">
+      <div className="min-h-screen w-[83vw] ml-[17vw] flex items-center justify-center bg-gradient-to-br from-slate-100 to-indigo-100 text-gray-700">
         <p className="text-xl animate-pulse">Loading Reports...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 p-8 text-white">
+    <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-100 via-white to-indigo-100 p-8 text-gray-800">
 
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8 mt-10">
         <div>
           <h1 className="text-3xl font-bold">Platform Analytics</h1>
-          <p className="text-gray-400">Real-time system insights</p>
+          <p className="text-gray-500">Real-time system insights</p>
         </div>
 
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-white/40 hover:bg-white/80 rounded-xl shadow"
         >
           <ArrowDownTrayIcon className="w-5 h-5" />
           Export
@@ -136,19 +129,19 @@ export default function AdminReports() {
           title="Total Users"
           value={totalUsers}
           trend="Live data"
-          icon={<UsersIcon className="w-8 h-8 text-blue-400" />}
+          icon={<UsersIcon className="w-8 h-8 text-indigo-500" />}
         />
         <StatCard
           title="Quizzes Attempted"
           value={quizStatsData.reduce((a, b) => a + b.attempts, 0)}
           trend="Dynamic"
-          icon={<AcademicCapIcon className="w-8 h-8 text-green-400" />}
+          icon={<AcademicCapIcon className="w-8 h-8 text-emerald-500" />}
         />
         <StatCard
           title="Average Score"
           value={`${avgScore}%`}
           trend="Updated"
-          icon={<ChartBarIcon className="w-8 h-8 text-purple-400" />}
+          icon={<ChartBarIcon className="w-8 h-8 text-purple-500" />}
         />
       </div>
 
@@ -156,30 +149,30 @@ export default function AdminReports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* USER GROWTH */}
-        <div className="bg-white/5 p-6 rounded-2xl">
-          <h3 className="mb-4 text-indigo-300">User Growth</h3>
+        <div className="bg-white/50 backdrop-blur-xl border border-white/40 p-6 rounded-2xl shadow">
+          <h3 className="mb-4 text-indigo-600 font-semibold">User Growth</h3>
           <div className="h-72">
             <ResponsiveContainer>
               <AreaChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" />
-                <XAxis dataKey="month" stroke="#aaa" />
-                <YAxis stroke="#aaa" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
                 <Tooltip />
-                <Area type="monotone" dataKey="users" stroke="#818cf8" fill="#6366f1" />
+                <Area type="monotone" dataKey="users" stroke="#6366f1" fill="#a5b4fc" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* QUIZ STATS */}
-        <div className="bg-white/5 p-6 rounded-2xl">
-          <h3 className="mb-4 text-indigo-300">Quiz Engagement</h3>
+        <div className="bg-white/50 backdrop-blur-xl border border-white/40 p-6 rounded-2xl shadow">
+          <h3 className="mb-4 text-indigo-600 font-semibold">Quiz Engagement</h3>
           <div className="h-72">
             <ResponsiveContainer>
               <BarChart data={quizStatsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff1a" />
-                <XAxis dataKey="subject" stroke="#aaa" />
-                <YAxis stroke="#aaa" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="subject" stroke="#6b7280" />
+                <YAxis stroke="#6b7280" />
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="attempts" fill="#34d399" />
@@ -189,8 +182,8 @@ export default function AdminReports() {
         </div>
 
         {/* ROLE PIE */}
-        <div className="bg-white/5 p-6 rounded-2xl lg:col-span-2">
-          <h3 className="mb-4 text-center text-indigo-300">
+        <div className="bg-white/50 backdrop-blur-xl border border-white/40 p-6 rounded-2xl shadow lg:col-span-2">
+          <h3 className="mb-4 text-center text-indigo-600 font-semibold">
             User Role Distribution
           </h3>
 
@@ -222,16 +215,16 @@ export default function AdminReports() {
   );
 }
 
-// CARD COMPONENT
+// CARD
 function StatCard({ title, value, trend, icon }) {
   return (
-    <div className="bg-white/5 p-6 rounded-2xl flex justify-between items-center hover:-translate-y-1 transition">
+    <div className="bg-white/50 backdrop-blur-xl border border-white/40 p-6 rounded-2xl shadow flex justify-between items-center hover:scale-[1.02] transition">
       <div>
-        <p className="text-gray-400">{title}</p>
-        <h3 className="text-3xl font-bold">{value}</h3>
-        <p className="text-indigo-300 text-sm">{trend}</p>
+        <p className="text-gray-500">{title}</p>
+        <h3 className="text-3xl font-bold text-gray-800">{value}</h3>
+        <p className="text-indigo-500 text-sm">{trend}</p>
       </div>
-      <div className="p-4 bg-white/10 rounded-xl">{icon}</div>
+      <div className="p-4 bg-white/60 rounded-xl">{icon}</div>
     </div>
   );
 }

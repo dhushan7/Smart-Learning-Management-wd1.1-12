@@ -4,7 +4,7 @@ import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Swal from "sweetalert2";
 
-// Floating Input
+// Floating Input (LIGHT THEME ONLY UPDATED)
 const FloatingLabelInput = ({
   name,
   type = "text",
@@ -24,8 +24,8 @@ const FloatingLabelInput = ({
       placeholder=" "
       required={required}
       disabled={disabled}
-      className={`peer w-full px-4 py-3 rounded-lg border text-black placeholder-transparent focus:outline-none focus:ring-2 focus:ring-indigo-600 ${
-        disabled ? "bg-gray-200 cursor-not-allowed" : "bg-white border-gray-300"
+      className={`peer w-full px-4 py-3 rounded-lg border text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+        disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white border-gray-300"
       }`}
     />
     <label
@@ -64,9 +64,6 @@ export default function UserAdm() {
       const res = await axios.get(BASE_URL);
       let fetchedUsers = res.data;
 
-      // ==========================================
-      // NEW LOGIC: Filter students for Academic Panel
-      // ==========================================
       if (role === "Academic Panel") {
         fetchedUsers = fetchedUsers.filter((u) => u.role === "Student");
       }
@@ -80,7 +77,6 @@ export default function UserAdm() {
     }
   };
 
-  // search
   useEffect(() => {
     const filtered = users.filter((u) =>
       (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -98,19 +94,11 @@ export default function UserAdm() {
       icon: "success",
       timer: 1600,
       showConfirmButton: false,
-      background: "rgba(255,255,255,0.08)",
-      backdrop: "rgba(0,0,0,0.6)",
+      background: "#ffffff",
       customClass: {
-        popup: `
-          rounded-2xl
-          border border-green-400/20
-          shadow-2xl
-          backdrop-blur-xl
-          bg-white/10
-          text-white
-        `,
-        title: "text-white font-semibold",
-        htmlContainer: "text-white/80",
+        popup: "rounded-2xl border shadow-lg",
+        title: "text-gray-800 font-semibold",
+        htmlContainer: "text-gray-600",
       },
     });
   };
@@ -121,54 +109,30 @@ export default function UserAdm() {
       return;
     }
 
+    const user = users.find((u) => u.id === id);
+
+    if (!user?.email) {
+      Swal.fire("Error", "Email not found for this user", "error");
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "This user will be permanently deleted!",
       icon: "warning",
-
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
       cancelButtonText: "Cancel",
-
-      background: "rgba(255,255,255,0.08)",
-
-      backdrop: `
-        rgba(0,0,0,0.65)
-      `,
-
-      customClass: {
-        popup: `
-          rounded-2xl
-          border border-red-400/20
-          shadow-2xl
-          backdrop-blur-xl
-          bg-white/10
-          text-white
-        `,
-        title: "text-white font-semibold",
-        htmlContainer: "text-white/80",
-
-        confirmButton: `
-          bg-red-600 hover:bg-red-700
-          text-white font-medium
-          px-4 py-2 rounded-lg
-          shadow-lg shadow-red-500/30 mr-3
-        `,
-
-        cancelButton: `
-          bg-white/10 hover:bg-white/20
-          text-white border border-white/20
-          px-4 py-2 rounded-lg
-        `,
-      },
-
-      buttonsStyling: false,
+      background: "#ffffff",
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      await axios.delete(`${BASE_URL}/${id}`);
+      await axios.delete(`${BASE_URL}/delete`, {
+        params: { email: user.email },
+      });
+
       showSuccess("Deleted!", "User has been removed successfully");
       fetchUsers();
     } catch (err) {
@@ -195,38 +159,7 @@ export default function UserAdm() {
       showCancelButton: true,
       confirmButtonText: "Yes, update",
       cancelButtonText: "Cancel",
-
-      background: "rgba(255,255,255,0.08)",
-
-      backdrop: `
-        rgba(0,0,0,0.6)
-      `,
-
-      customClass: {
-        popup: `
-          rounded-2xl
-          border border-white/20
-          shadow-2xl
-          backdrop-blur-xl
-          bg-white/10
-          text-white
-        `,
-        title: "text-white font-semibold",
-        htmlContainer: "text-white/80",
-        confirmButton: `
-          bg-indigo-600 hover:bg-indigo-700
-          text-white font-medium
-          px-4 py-2 rounded-lg
-          shadow-lg shadow-indigo-500/30 mr-3
-        `,
-        cancelButton: `
-          bg-white/10 hover:bg-white/20
-          text-white border border-white/20
-          px-4 py-2 rounded-lg
-        `,
-      },
-
-      buttonsStyling: false,
+      background: "#ffffff",
     });
 
     if (!result.isConfirmed) return;
@@ -242,7 +175,6 @@ export default function UserAdm() {
     }
   };
 
-  // Pagination
   const indexOfLast = currentPage * usersPerPage;
   const indexOfFirst = indexOfLast - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirst, indexOfLast);
@@ -251,28 +183,28 @@ export default function UserAdm() {
   const getRoleBadge = (role) => {
     switch (role) {
       case "Admin":
-        return "bg-red-500";
+        return "bg-red-100 text-red-600";
       case "Student":
-        return "bg-green-500";
+        return "bg-green-100 text-green-600";
       default:
-        return "bg-blue-500";
+        return "bg-blue-100 text-blue-600";
     }
   };
 
   return (
-    <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800 p-8 text-white">
+    <div className="min-h-screen w-[83vw] ml-[17vw] bg-gradient-to-br from-gray-50 to-indigo-50 p-8 text-gray-800">
+
+      {/* HEADER */}
       <div className="flex justify-between items-center mb-8 mt-20">
-        {/* Dynamic Header */}
         <h1 className="text-3xl font-bold">
           {role === "Academic Panel" ? "Review Students" : "Admin Dashboard"}
         </h1>
 
-        <div className="flex gap-3 items-center mb-10">
-          {/* CREATE STAFF BUTTON */}
+        <div className="flex gap-3 items-center">
           {role === "Admin" && (
             <button
               onClick={() => navigate("/admin/create-staff")}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-medium shadow-lg shadow-indigo-500/30 transition"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow"
             >
               + Create New User
             </button>
@@ -283,19 +215,19 @@ export default function UserAdm() {
             placeholder="Search users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 rounded-lg text-black w-80 focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-800 w-80 focus:ring-2 focus:ring-indigo-400"
           />
         </div>
       </div>
 
       {loading ? (
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-gray-500">Loading...</p>
       ) : (
         <>
-          {/* table */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-xl overflow-hidden">
+          {/* TABLE */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border">
             <table className="w-full text-left">
-              <thead className="bg-white/10 text-gray-300">
+              <thead className="bg-gray-100 text-gray-600">
                 <tr>
                   <th className="p-4">ID</th>
                   <th>Name</th>
@@ -310,107 +242,76 @@ export default function UserAdm() {
                 {currentUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-t border-white/10 hover:bg-white/5 transition"
+                    className="border-t hover:bg-gray-50 transition"
                   >
                     <td className="p-4">{user.id}</td>
                     <td>{user.name}</td>
                     <td>{user.email}</td>
                     <td>{user.username}</td>
 
-                    {/* ROLE BADGE */}
                     <td>
-                      <span
-                        className={`px-3 py-1 text-xs rounded-full text-white ${getRoleBadge(
-                          user.role
-                        )}`}
-                      >
+                      <span className={`px-3 py-1 text-xs rounded-full ${getRoleBadge(user.role)}`}>
                         {user.role}
                       </span>
                     </td>
 
-                    {/* action */}
                     <td className="flex gap-2 p-2">
-                      {/* edit */}
                       {role === "Admin" && user.role !== "Student" && (
                         <button
                           onClick={() => setEditingUser(user)}
-                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 text-sm"
                         >
                           Edit
                         </button>
                       )}
 
-                      {/* delete */}
                       {role === "Admin" && (
                         <button
                           onClick={() => deleteUser(user.id)}
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
                         >
                           Delete
                         </button>
                       )}
-
-                      {/* Fallback text if user has no actions available */}
-                      {role === "Academic Panel" && (
-                        <span className="text-gray-400 text-sm italic">
-                          View Only
-                        </span>
-                      )}
                     </td>
                   </tr>
                 ))}
-                
-                {/* Fallback if no users are found after filtering */}
-                {currentUsers.length === 0 && (
-                   <tr>
-                     <td colSpan="6" className="text-center p-6 text-gray-400">
-                        No users found.
-                     </td>
-                   </tr>
-                )}
               </tbody>
             </table>
           </div>
 
-          {/* pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-6 gap-2">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-lg ${
-                    currentPage === i + 1
-                      ? "bg-indigo-600"
-                      : "bg-white/10 hover:bg-white/20"
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* PAGINATION */}
+          <div className="flex justify-center mt-6 gap-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`px-3 py-1 rounded-lg border ${
+                  currentPage === i + 1
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white hover:bg-gray-100 text-gray-700"
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
         </>
       )}
 
-      {/* edit model */}
+      {/* MODAL */}
       {editingUser && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
-          <div className="relative w-[520px] p-8 rounded-2xl 
-            bg-white/10 backdrop-blur-2xl 
-            border border-white/20 
-            shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]
-            overflow-hidden">
-                      
-            {/* close btn */}
+        <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-50">
+          <div className="w-[520px] p-8 rounded-2xl bg-white border shadow-xl">
+
             <button
               onClick={() => setEditingUser(null)}
-              className="absolute top-3 right-3 text-white hover:text-red-400"
+              className="absolute top-3 right-3 text-gray-600 hover:text-red-500"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
 
-            <h2 className="text-xl font-bold mb-6 text-center">
+            <h2 className="text-xl font-bold mb-6 text-center text-gray-800">
               Edit User
             </h2>
 
@@ -419,7 +320,6 @@ export default function UserAdm() {
                 name="name"
                 label="Name"
                 value={editingUser.name}
-                disabled={editingUser.role === "Student"}
                 onChange={(e) =>
                   setEditingUser({ ...editingUser, name: e.target.value })
                 }
@@ -429,7 +329,6 @@ export default function UserAdm() {
                 name="email"
                 label="Email"
                 value={editingUser.email}
-                disabled={editingUser.role === "Student"}
                 onChange={(e) =>
                   setEditingUser({ ...editingUser, email: e.target.value })
                 }
@@ -439,33 +338,28 @@ export default function UserAdm() {
                 name="username"
                 label="Username"
                 value={editingUser.username}
-                disabled={editingUser.role === "Student"}
                 onChange={(e) =>
-                  setEditingUser({
-                    ...editingUser,
-                    username: e.target.value,
-                  })
+                  setEditingUser({ ...editingUser, username: e.target.value })
                 }
               />
             </div>
 
-            {/* buttons */}
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={updateUser}
-                disabled={editingUser.role === "Student"}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-40"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
               >
                 Save
               </button>
 
               <button
                 onClick={() => setEditingUser(null)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
               >
                 Cancel
               </button>
             </div>
+
           </div>
         </div>
       )}

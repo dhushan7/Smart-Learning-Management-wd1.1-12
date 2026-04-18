@@ -18,7 +18,6 @@ export default function AdminCreateUser() {
 
   const BASE_URL = "http://localhost:8086";
 
-  // HANDLE CHANGE
   const handleChange = (e) => {
     setUser({
       ...user,
@@ -31,7 +30,6 @@ export default function AdminCreateUser() {
     });
   };
 
-  // VALIDATION
   const validate = () => {
     const err = {};
 
@@ -55,7 +53,6 @@ export default function AdminCreateUser() {
     return err;
   };
 
-  // SUBMIT
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -88,11 +85,9 @@ export default function AdminCreateUser() {
           role: "Student",
         });
 
-        // Navigate after success
         setTimeout(() => {
           navigate("/admin/users");
         }, 1000);
-
       } else {
         setErrors({ submit: "Failed to create user" });
       }
@@ -101,29 +96,32 @@ export default function AdminCreateUser() {
     }
   };
 
-  // UI
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-blue-50 to-indigo-100">
 
-      {/* BACK BUTTON AREA (click outside effect) */}
+      {/* BACK CLICK AREA */}
       <div
         className="absolute inset-0"
         onClick={() => navigate("/admin/users")}
       />
 
-      {/* CARD */}
-      <div className="relative w-[500px] p-8 rounded-2xl backdrop-blur-xl bg-white/20 border border-white/30 shadow-2xl z-10">
+      {/* GLASS CARD */}
+      <div className="relative w-[500px] p-8 rounded-3xl 
+        bg-white/60 backdrop-blur-2xl 
+        border border-white/40 
+        shadow-[0_8px_32px_rgba(0,0,0,0.1)] 
+        z-10">
 
-        <h2 className="text-2xl font-bold text-white text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 text-center mb-6">
           Admin Create User
         </h2>
 
         {success && (
-          <p className="text-green-300 text-center mb-3">{success}</p>
+          <p className="text-green-600 text-center mb-3">{success}</p>
         )}
 
         {errors.submit && (
-          <p className="text-red-300 text-center mb-3">{errors.submit}</p>
+          <p className="text-red-500 text-center mb-3">{errors.submit}</p>
         )}
 
         {/* FORM */}
@@ -135,7 +133,7 @@ export default function AdminCreateUser() {
             value={user.username}
             onChange={handleChange}
           />
-          {errors.username && <p className="text-red-300 text-sm">{errors.username}</p>}
+          {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
 
           <FloatingInput
             name="name"
@@ -143,7 +141,7 @@ export default function AdminCreateUser() {
             value={user.name}
             onChange={handleChange}
           />
-          {errors.name && <p className="text-red-300 text-sm">{errors.name}</p>}
+          {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
 
           <FloatingInput
             name="email"
@@ -152,7 +150,7 @@ export default function AdminCreateUser() {
             value={user.email}
             onChange={handleChange}
           />
-          {errors.email && <p className="text-red-300 text-sm">{errors.email}</p>}
+          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
 
           <FloatingInput
             name="password"
@@ -161,14 +159,18 @@ export default function AdminCreateUser() {
             value={user.password}
             onChange={handleChange}
           />
-          {errors.password && <p className="text-red-300 text-sm">{errors.password}</p>}
+          {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
 
-          {/* ROLE */}
+          {/* ROLE SELECT */}
           <select
             name="role"
             value={user.role}
             onChange={handleChange}
-            className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/30 text-white backdrop-blur-md focus:outline-none"
+            className="w-full px-4 py-3 rounded-lg 
+              bg-white/70 backdrop-blur-md 
+              border border-gray-300 
+              text-gray-700 
+              focus:outline-none focus:ring-2 focus:ring-indigo-400"
           >
             <option value="Student">Student</option>
             <option value="Admin">Admin</option>
@@ -178,7 +180,10 @@ export default function AdminCreateUser() {
           {/* BUTTON */}
           <button
             type="submit"
-            className="w-full py-2 rounded-lg bg-white/30 hover:bg-white/40 text-white font-semibold transition"
+            className="w-full py-2 rounded-lg 
+              bg-indigo-600 hover:bg-indigo-700 
+              text-white font-semibold 
+              shadow-md transition"
           >
             Create User
           </button>
