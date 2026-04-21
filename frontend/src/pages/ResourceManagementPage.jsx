@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const API_BASE = "http://localhost:8086/api";
-const CURRENT_USER = "STU-2026-001";
 const ALLOWED_FILE_TYPES = ["pdf", "doc", "docx", "ppt", "pptx", "txt", "zip"];
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const MAX_UPLOAD_MB = 25;
@@ -18,6 +17,7 @@ function inputCls(hasError) {
 }
 
 export default function ResourceManagementPage() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [resources, setResources] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
   const [form, setForm] = useState({ title: "", category: "", description: "", file: null });
@@ -29,7 +29,22 @@ export default function ResourceManagementPage() {
   const [progressMap, setProgressMap] = useState({});
   const [favourites, setFavourites] = useState(new Set());
 
+  // 1. Retrieve the real user from Local Storage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        // Assuming your user object has a username property based on your Login component
+        setCurrentUser(parsedUser.username); 
+      } catch (err) {
+        console.error("Failed to parse user data", err);
+      }
+    }
+  }, []);
+
   const loadAll = useCallback(async () => {
+    // Load general resources regardless of auth status
     try {
       const res = await fetch(`${API_BASE}/resources?status=APPROVED`);
       if (!res.ok) throw new Error();
@@ -37,26 +52,31 @@ export default function ResourceManagementPage() {
       setBackendStatus("Online: API connected");
     } catch { setBackendStatus("Offline: backend unavailable"); }
 
-    try {
-      const prog = await fetch(`${API_BASE}/progress/${CURRENT_USER}`);
-      if (prog.ok) {
-        const data = await prog.json();
-        const map = {};
-        data.forEach(p => { map[p.resourceId] = p; });
-        setProgressMap(map);
-      }
-    } catch { /* ignore */ }
+    // If we have a logged-in user, fetch their specific progress and favourites
+    if (currentUser) {
+      try {
+        const prog = await fetch(`${API_BASE}/progress/${currentUser}`);
+        if (prog.ok) {
+          const data = await prog.json();
+          const map = {};
+          data.forEach(p => { map[p.resourceId] = p; });
+          setProgressMap(map);
+        }
+      } catch { /* ignore */ }
 
-    try {
-      const fav = await fetch(`${API_BASE}/favourites/${CURRENT_USER}`);
-      if (fav.ok) {
-        const data = await fav.json();
-        setFavourites(new Set(data.map(f => f.resourceId)));
-      }
-    } catch { /* ignore */ }
-  }, []);
+      try {
+        const fav = await fetch(`${API_BASE}/favourites/${currentUser}`);
+        if (fav.ok) {
+          const data = await fav.json();
+          setFavourites(new Set(data.map(f => f.resourceId)));
+        }
+      } catch { /* ignore */ }
+    }
+  }, [currentUser]); // Added currentUser as dependency
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { 
+    loadAll(); 
+  }, [loadAll]);
 
   const categories = useMemo(() => {
     return [...new Set(resources.map(r => r.category).filter(Boolean))].sort();
@@ -111,14 +131,22 @@ export default function ResourceManagementPage() {
 
   async function handleUpload(e) {
     e.preventDefault();
+    if (!currentUser) {
+      alert("You must be logged in to upload resources.");
+      return;
+    }
     if (!validateUpload()) return;
+    
     const { title, category, description, file } = form;
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("title", title.trim()); fd.append("category", category.trim());
-      fd.append("description", description.trim()); fd.append("file", file);
-      fd.append("uploadedBy", CURRENT_USER);
+      fd.append("title", title.trim()); 
+      fd.append("category", category.trim());
+      fd.append("description", description.trim()); 
+      fd.append("file", file);
+      fd.append("uploadedBy", currentUser); // Using dynamic user
+
       const res = await fetch(`${API_BASE}/resources/upload`, { method: "POST", body: fd });
       if (!res.ok) throw new Error();
       const saved = await res.json();
@@ -150,8 +178,10 @@ export default function ResourceManagementPage() {
   }
 
   async function updateProgress(resourceId, patch) {
+    if (!currentUser) return; // Prevent updates if not logged in
+
     const current = progressMap[resourceId] || { opened: false, completed: false, progressPercent: 0 };
-    const next = { ...current, ...patch, userId: CURRENT_USER, resourceId };
+    const next = { ...current, ...patch, userId: currentUser, resourceId };
     setProgressMap(prev => ({ ...prev, [resourceId]: next }));
     try {
       await fetch(`${API_BASE}/progress`, {
@@ -162,17 +192,22 @@ export default function ResourceManagementPage() {
   }
 
   async function toggleFavourite(resourceId) {
+    if (!currentUser) {
+      alert("Please log in to save favourites.");
+      return;
+    }
+
     const isFav = favourites.has(resourceId);
     const next = new Set(favourites);
     isFav ? next.delete(resourceId) : next.add(resourceId);
     setFavourites(next);
     try {
       if (isFav) {
-        await fetch(`${API_BASE}/favourites?userId=${CURRENT_USER}&resourceId=${resourceId}`, { method: "DELETE" });
+        await fetch(`${API_BASE}/favourites?userId=${currentUser}&resourceId=${resourceId}`, { method: "DELETE" });
       } else {
         await fetch(`${API_BASE}/favourites`, {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: CURRENT_USER, resourceId }),
+          body: JSON.stringify({ userId: currentUser, resourceId }),
         });
       }
     } catch { /* keep optimistic update */ }
@@ -187,12 +222,14 @@ export default function ResourceManagementPage() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-3xl font-bold text-cyan-900">Resource Management</h2>
-            <p className="text-sm text-slate-500">Upload, browse, track progress and save favourites</p>
+            <p className="text-sm text-slate-500">
+              {currentUser ? `Welcome back, ${currentUser} | Upload, browse, track progress and save favourites` : "Upload, browse, track progress and save favourites"}
+            </p>
           </div>
           <p className="rounded-md bg-cyan-50 px-3 py-1 text-xs text-cyan-800">{backendStatus}</p>
         </div>
 
-        {/* Upload Form */}
+        {/* Upload Form (Disabled visually if no user) */}
         <details className="mb-5 rounded-xl border border-cyan-100 bg-cyan-50">
           <summary className="cursor-pointer rounded-xl px-4 py-3 text-sm font-semibold text-cyan-800 hover:bg-cyan-100 select-none">
             ＋ Upload New Resource
@@ -203,7 +240,7 @@ export default function ResourceManagementPage() {
                 Title <span className="text-red-500">*</span>
               </label>
               <input name="title" value={form.title} onChange={handleFormInput}
-                placeholder="E.g. ITPM Chapter 3" maxLength={100}
+                placeholder="E.g. ITPM Chapter 3" maxLength={100} disabled={!currentUser}
                 className={inputCls(!!formErrors.title)} />
               <FieldError msg={formErrors.title} />
             </div>
@@ -212,7 +249,7 @@ export default function ResourceManagementPage() {
                 Category / Subject <span className="text-red-500">*</span>
               </label>
               <input name="category" value={form.category} onChange={handleFormInput}
-                placeholder="E.g. Project Management" maxLength={50}
+                placeholder="E.g. Project Management" maxLength={50} disabled={!currentUser}
                 className={inputCls(!!formErrors.category)} />
               <FieldError msg={formErrors.category} />
             </div>
@@ -221,7 +258,7 @@ export default function ResourceManagementPage() {
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea name="description" value={form.description} onChange={handleFormInput}
-                rows={2} maxLength={500} placeholder="Min. 10 characters…"
+                rows={2} maxLength={500} placeholder="Min. 10 characters…" disabled={!currentUser}
                 className={inputCls(!!formErrors.description)} />
               <div className="flex justify-between items-start">
                 <FieldError msg={formErrors.description} />
@@ -235,7 +272,7 @@ export default function ResourceManagementPage() {
                 File <span className="text-red-500">*</span>
               </label>
               <input type="file" name="file" onChange={handleFormInput}
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip" disabled={!currentUser}
                 className={inputCls(!!formErrors.file)} />
               <div className="flex justify-between items-start">
                 <FieldError msg={formErrors.file} />
@@ -243,9 +280,9 @@ export default function ResourceManagementPage() {
               </div>
             </div>
             <div className="flex items-end">
-              <button type="submit" disabled={uploading}
-                className="rounded-lg bg-cyan-700 px-5 py-2 text-sm font-bold text-white hover:bg-cyan-800 disabled:opacity-50">
-                {uploading ? "Uploading…" : "Upload"}
+              <button type="submit" disabled={uploading || !currentUser}
+                className="rounded-lg bg-cyan-700 px-5 py-2 text-sm font-bold text-white hover:bg-cyan-800 disabled:opacity-50 disabled:cursor-not-allowed">
+                {!currentUser ? "Log in to upload" : uploading ? "Uploading…" : "Upload"}
               </button>
             </div>
           </form>
@@ -319,18 +356,19 @@ export default function ResourceManagementPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     <button onClick={() => updateProgress(resource.id, { opened: true, progressPercent: Math.max(pct, 10) })}
-                      disabled={!!prog.opened}
-                      className="rounded bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-40">
+                      disabled={!!prog.opened || !currentUser}
+                      className="rounded bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-40 disabled:cursor-not-allowed">
                       {prog.opened ? "✓ Opened" : "Mark Opened"}
                     </button>
                     <button onClick={() => updateProgress(resource.id, { opened: true, completed: true, progressPercent: 100 })}
-                      disabled={!!prog.completed}
-                      className="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40">
+                      disabled={!!prog.completed || !currentUser}
+                      className="rounded bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed">
                       {prog.completed ? "✓ Completed" : "Mark Complete"}
                     </button>
                     {!prog.completed && pct > 0 && pct < 100 && (
                       <button onClick={() => updateProgress(resource.id, { progressPercent: Math.min(pct + 25, 100) })}
-                        className="rounded bg-slate-100 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-200">+25%</button>
+                        disabled={!currentUser}
+                        className="rounded bg-slate-100 px-2 py-1 text-[11px] text-slate-600 hover:bg-slate-200 disabled:opacity-40">+25%</button>
                     )}
                   </div>
                 </div>
@@ -343,7 +381,7 @@ export default function ResourceManagementPage() {
                       📖 Read PDF
                     </a>
                   )}
-                  <a href={`${API_BASE}/resources/file/download/${encodeURIComponent(resource.fileUrl)}?userId=${CURRENT_USER}`}
+                  <a href={`${API_BASE}/resources/file/download/${encodeURIComponent(resource.fileUrl)}${currentUser ? `?userId=${currentUser}` : ''}`}
                     onClick={() => updateProgress(resource.id, { opened: true, progressPercent: Math.max(pct, 10) })}
                     className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 hover:bg-slate-200">
                     ⬇ Download (+2 credits)

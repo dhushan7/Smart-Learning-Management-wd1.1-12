@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom"; // <-- IMPORT ADDED HERE
 import "./CommunityChatbot.css";
 import chatbotKnowledge from "../data/chatbotKnowledge";
 
@@ -6,7 +7,8 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:808
 const AI_HISTORY_LIMIT = 6;
 
 function CommunityChatbot() {
-  const [isOpen, setIsOpen] = useState(false); // Controls if the chat window is open
+  const [isOpen, setIsOpen] = useState(false);
+  const [isStudent, setIsStudent] = useState(false); 
   const [messages, setMessages] = useState([
     {
       sender: "bot",
@@ -25,13 +27,32 @@ function CommunityChatbot() {
   const [lastIntent, setLastIntent] = useState(null);
 
   const chatEndRef = useRef(null);
+  const location = useLocation(); // <-- HOOK ADDED HERE
+
+  // --- NEW LOGIC: Check role whenever the URL changes ---
+  useEffect(() => {
+    const checkUserRole = () => {
+      const role = localStorage.getItem("role");
+      setIsStudent(role === "Student");
+    };
+
+    // This will run when the component mounts AND every time the user 
+    // is redirected (e.g., to /dashboard after login)
+    checkUserRole();
+
+    // Still keep this just in case they log in from another tab
+    window.addEventListener("storage", checkUserRole);
+
+    return () => {
+      window.removeEventListener("storage", checkUserRole);
+    };
+  }, [location.pathname]); // <-- DEPENDENCY ADDED HERE
 
   function getCurrentTime() {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
-  // Added isOpen to ensure it scrolls down when the window is toggled open
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping, isOpen]); 
@@ -136,8 +157,6 @@ function CommunityChatbot() {
     };
   };
 
-  // Updated sendMessage from the bottom code snippet
-  // It now always tries the backend first, using localResponse as a fallback
   const sendMessage = async (messageText) => {
     if (!messageText.trim()) return;
 
@@ -260,9 +279,12 @@ function CommunityChatbot() {
     "What features does the platform have?"
   ];
 
+  if (!isStudent) {
+    return null;
+  }
+
   return (
     <div className="chatbot-floating-wrapper">
-      {/* THE FLOATING TOGGLE BUTTON */}
       <button 
         className={`chatbot-toggle-btn ${isOpen ? 'open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
@@ -270,7 +292,6 @@ function CommunityChatbot() {
         {isOpen ? "✕" : "💬"}
       </button>
 
-      {/* THE CHAT WINDOW */}
       {isOpen && (
         <div className="floating-chat-window">
           <div className="chat-header">

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const API_BASE = "http://localhost:8086/api";
-const CURRENT_USER = "STU-2026-001";
 const FEEDBACK_MIN = 10;
 const FEEDBACK_MAX = 400;
 
@@ -13,6 +12,7 @@ function FieldError({ msg }) {
     </p>
   );
 }
+
 function inputCls(hasError) {
   return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${
     hasError
@@ -22,6 +22,7 @@ function inputCls(hasError) {
 }
 
 export default function ReviewRatingPage() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [resources, setResources] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
@@ -33,6 +34,19 @@ export default function ReviewRatingPage() {
   const [formErrors, setFormErrors] = useState({});
   const [editingReview, setEditingReview] = useState(null);
   const [editErrors, setEditErrors] = useState({});
+
+  // 1. Retrieve the real user from Local Storage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser.username); 
+      } catch (err) {
+        console.error("Failed to parse user data", err);
+      }
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -109,13 +123,19 @@ export default function ReviewRatingPage() {
 
   async function handleReviewSubmit(e) {
     e.preventDefault();
+    if (!currentUser) {
+      alert("You must be logged in to submit a review.");
+      return;
+    }
     if (!validateSubmitForm()) return;
+
     const payload = {
       resourceId: Number(reviewForm.resourceId),
       rating: Number(reviewForm.rating),
       feedbackText: reviewForm.feedbackText.trim(),
-      userId: CURRENT_USER,
+      userId: currentUser, // Using dynamic user
     };
+
     try {
       const res = await fetch(`${API_BASE}/reviews`, {
         method: "POST",
@@ -262,7 +282,7 @@ export default function ReviewRatingPage() {
               Review and Rating
             </h2>
             <p className="text-sm text-slate-500">
-              Leave feedback and manage your reviews
+              {currentUser ? `Leave feedback and manage your reviews as ${currentUser}` : "Log in to leave feedback and manage your reviews"}
             </p>
           </div>
           <p className="rounded-md bg-amber-50 px-3 py-1 text-xs text-amber-800">
@@ -280,7 +300,8 @@ export default function ReviewRatingPage() {
               name="resourceId"
               value={reviewForm.resourceId}
               onChange={handleReviewInput}
-              className={`${inputCls(!!formErrors.resourceId)} capitalize`}
+              disabled={!currentUser}
+              className={`${inputCls(!!formErrors.resourceId)} capitalize disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               <option value="">Select a Resource</option>
               {sortedResources.map((r) => (
@@ -300,7 +321,8 @@ export default function ReviewRatingPage() {
               name="rating"
               value={reviewForm.rating}
               onChange={handleReviewInput}
-              className={inputCls(!!formErrors.rating)}
+              disabled={!currentUser}
+              className={`${inputCls(!!formErrors.rating)} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {[1, 2, 3, 4, 5].map((s) => (
                 <option key={s} value={s}>
@@ -319,10 +341,11 @@ export default function ReviewRatingPage() {
               name="feedbackText"
               value={reviewForm.feedbackText}
               onChange={handleReviewInput}
+              disabled={!currentUser}
               rows={3}
-              placeholder="Share your experience…"
+              placeholder={currentUser ? "Share your experience…" : "You must be logged in to leave feedback."}
               maxLength={FEEDBACK_MAX}
-              className={inputCls(!!formErrors.feedbackText)}
+              className={`${inputCls(!!formErrors.feedbackText)} disabled:opacity-50 disabled:cursor-not-allowed`}
             />
             <div className="flex justify-between items-start">
               <FieldError msg={formErrors.feedbackText} />
@@ -344,16 +367,19 @@ export default function ReviewRatingPage() {
 
           <button
             type="submit"
-            className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-bold text-white hover:bg-amber-700"
+            disabled={!currentUser}
+            className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-bold text-white hover:bg-amber-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
           >
-            Submit Review
+            {currentUser ? "Submit Review" : "Log in to submit"}
           </button>
         </form>
 
         {/* Reviews List */}
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {sortedReviews.map((review) => {
-            const isOwn = review.userId === CURRENT_USER || !review.userId;
+            // Check if the currently logged-in user matches the review author
+            const isOwn = currentUser && review.userId === currentUser;
+            
             return (
               <article
                 key={review.id}

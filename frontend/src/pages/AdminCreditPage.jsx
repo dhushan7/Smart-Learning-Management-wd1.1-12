@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = "http://localhost:8086/api";
+const USER_API = "http://localhost:8086/user";
 const ACTIVITIES = [
   "Quiz Completion",
   "Assignment Submission",
@@ -14,8 +15,13 @@ function FieldError({ msg }) {
   if (!msg) return null;
   return <p className="mt-1 text-xs text-red-500 flex items-center gap-1">⚠ {msg}</p>;
 }
+
 function inputCls(hasError) {
-  return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${hasError ? "border-red-400 bg-red-50 focus:ring-1 focus:ring-red-400 focus:outline-none" : "border-slate-200 focus:ring-1 focus:ring-violet-400 focus:outline-none"}`;
+  return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${
+    hasError 
+    ? "border-red-400 bg-red-50 focus:ring-1 focus:ring-red-400 focus:outline-none" 
+    : "border-slate-200 focus:ring-1 focus:ring-violet-400 focus:outline-none"
+  }`;
 }
 
 export default function AdminCreditPage() {
@@ -36,70 +42,89 @@ export default function AdminCreditPage() {
   const [editingTx, setEditingTx] = useState(null);
   const [editErrors, setEditErrors] = useState({});
 
-  // Load users on mount
+  // 1. Robust dynamic user fetching
   useEffect(() => {
-    fetch(`${API_BASE}/users`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        setUsers(data || []);
-        if (data?.length > 0) {
-          const first = data[0].username || data[0].name || `User #${data[0].id}`;
-          setSelectedStudent(first);
-          setAwardForm(p => ({ ...p, studentId: first }));
-        } else {
-          setSelectedStudent("STU-2026-001");
-          setAwardForm(p => ({ ...p, studentId: "STU-2026-001" }));
-        }
-        setBackendStatus("Online");
-      })
-      .catch(() => {
-        setSelectedStudent("STU-2026-001");
-        setAwardForm(p => ({ ...p, studentId: "STU-2026-001" }));
-        setBackendStatus("Offline");
-      });
-  }, []);
-
-
-  useEffect(() => {
-    const checkBackend = async () => {
+    const fetchUsers = async () => {
       try {
-        const res = await fetch(`${API_BASE}/health`);
-        if (res.ok) {
-          setBackendStatus("Online");
-        } else {
-          setBackendStatus("Offline");
+        const res = await fetch(USER_API);
+        
+        if (!res.ok) {
+          throw new Error(`Server responded with status: ${res.status}`);
         }
-      } catch {
-        setBackendStatus("Offline");
+
+        const data = await res.json();
+        
+        // Safety Check: Ensure we are working with an array
+        // (Spring Boot sometimes wraps responses in "content" or "data" objects)
+        const userArray = Array.isArray(data) ? data : (data.content || data.data || []);
+
+        // Filter out only the students
+        const studentsOnly = userArray.filter((u) => u.role === "Student");
+        setUsers(studentsOnly);
+
+        if (studentsOnly.length > 0) {
+          // Default to the first student in the list
+          const firstStudent = studentsOnly[0].username || studentsOnly[0].email;
+          setSelectedStudent(firstStudent);
+          setAwardForm((p) => ({ ...p, studentId: firstStudent }));
+        } else {
+          setSelectedStudent("");
+          setAwardForm((p) => ({ ...p, studentId: "" }));
+        }
+        
+        setBackendStatus("Online");
+
+      } catch (err) {
+        console.error("Failed to fetch users. Check your backend server and CORS settings.", err);
+        setSelectedStudent("");
+        setAwardForm((p) => ({ ...p, studentId: "" }));
+        setBackendStatus("Offline: Cannot connect to User API");
       }
     };
 
-    checkBackend(); 
-
-    const interval = setInterval(checkBackend, 5000); 
-
-    return () => clearInterval(interval);
+    fetchUsers();
   }, []);
 
-  // Load credits + history whenever selected student changes
+  // 2. Load credits + history dynamically when the selected student changes
   const loadStudentData = useCallback(async (studentId) => {
-    if (!studentId) return;
+    if (!studentId) {
+      setTotalCredits(null);
+      setHistory([]);
+      return;
+    }
+    
     try {
       const [credRes, histRes] = await Promise.all([
         fetch(`${API_BASE}/credits/student/${studentId}`),
         fetch(`${API_BASE}/credits/history/${studentId}`),
       ]);
-      if (credRes.ok) { const d = await credRes.json(); setTotalCredits(d.totalCredits ?? 0); }
-      if (histRes.ok) setHistory(await histRes.json());
+      
+      if (credRes.ok) { 
+        const d = await credRes.json(); 
+        setTotalCredits(d.totalCredits ?? 0); 
+      }
+      if (histRes.ok) {
+        setHistory(await histRes.json());
+      }
+      
+      // If we successfully fetched student data, the backend is definitively online
       setBackendStatus("Online");
-    } catch { setBackendStatus("Offline"); }
+    } catch (err) {
+      console.error(`Failed to load data for student ${studentId}`, err);
+      setBackendStatus("Offline: API Unavailable"); 
+    }
   }, []);
 
-  useEffect(() => { if (selectedStudent) loadStudentData(selectedStudent); }, [selectedStudent, loadStudentData]);
+  useEffect(() => { 
+    if (selectedStudent) {
+      loadStudentData(selectedStudent); 
+    }
+  }, [selectedStudent, loadStudentData]);
 
+  // Extract the unique identifiers for the dropdown options dynamically
   const studentOptions = users.length > 0
-    ? users.map(u => u.username || u.name || `User #${u.id}`)
-    : ["STU-2026-001", "STU-2026-002", "STU-2026-003"];
+    ? users.map((u) => u.username || u.email || `User #${u.id}`)
+    : [];
 
   function handleAwardInput(e) {
     const { name, value } = e.target;
@@ -109,12 +134,11 @@ export default function AdminCreditPage() {
 
   function validateAward() {
     const e = {};
-    const activity = awardForm.activity === "Custom Activity"
-      ? awardForm.customActivity.trim()
-      : awardForm.activity;
     const credits = parseInt(awardForm.credits, 10);
 
-    if (!awardForm.studentId.trim()) e.studentId = "Please select a student.";
+    if (!awardForm.studentId || !awardForm.studentId.trim()) {
+      e.studentId = "Please select a student.";
+    }
 
     if (awardForm.activity === "Custom Activity") {
       if (!awardForm.customActivity.trim()) e.customActivity = "Custom activity name is required.";
@@ -151,24 +175,37 @@ export default function AdminCreditPage() {
   async function handleAward(e) {
     e.preventDefault();
     if (!validateAward()) return;
+    
     const activity = awardForm.activity === "Custom Activity"
       ? awardForm.customActivity.trim()
       : awardForm.activity;
     const credits = parseInt(awardForm.credits, 10);
+    
     setAwarding(true);
+    
     try {
       const res = await fetch(`${API_BASE}/credits/award`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ studentId: awardForm.studentId, activity, credits }),
       });
-      if (!res.ok) { const msg = await res.text(); alert(msg || "Award failed."); return; }
+      
+      if (!res.ok) { 
+        const msg = await res.text(); 
+        alert(msg || "Award failed. Please check the backend connection."); 
+        return; 
+      }
+      
       await loadStudentData(selectedStudent);
       setAwardForm(p => ({ ...p, credits: "", customActivity: "" }));
       setAwardErrors({});
       alert(`✓ Awarded ${credits} credit(s) to ${awardForm.studentId}`);
-    } catch { alert("Failed. Backend may be unavailable."); }
-    finally { setAwarding(false); }
+    } catch (err) { 
+      console.error("Award API error:", err);
+      alert("Failed to award credits. Backend may be unavailable."); 
+    } finally { 
+      setAwarding(false); 
+    }
   }
 
   async function handleDeleteTx(tx) {
@@ -234,8 +271,8 @@ export default function AdminCreditPage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={handleEditSave} className="flex-1 rounded-lg bg-violet-700 py-2 text-sm font-bold text-white hover:bg-violet-800">Save</button>
-              <button onClick={() => { setEditingTx(null); setEditErrors({}); }} className="flex-1 rounded-lg border py-2 text-sm hover:bg-slate-50">Cancel</button>
+              <button onClick={handleEditSave} className="flex-1 rounded-lg bg-violet-700 py-2 text-sm font-bold text-white hover:bg-violet-800 transition-colors">Save</button>
+              <button onClick={() => { setEditingTx(null); setEditErrors({}); }} className="flex-1 rounded-lg border py-2 text-sm hover:bg-slate-50 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -252,15 +289,15 @@ export default function AdminCreditPage() {
             <p className="mt-1 text-sm text-slate-500">Award credits, view history, edit and delete transactions</p>
           </div>
           <p
-            className={`rounded-md px-3 py-1 text-xs font-semibold flex items-center gap-1 ${
+            className={`rounded-md px-3 py-1 text-xs font-semibold flex items-center gap-1.5 ${
               backendStatus === "Online"
-                ? "bg-emerald-50 text-emerald-800"
-                : "bg-rose-50 text-rose-700"
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                : "bg-rose-50 text-rose-700 border border-rose-200"
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                backendStatus === "Online" ? "bg-green-500" : "bg-red-500"
+                backendStatus === "Online" ? "bg-green-500" : "bg-red-500 animate-pulse"
               }`}
             />
             {backendStatus}
@@ -278,8 +315,13 @@ export default function AdminCreditPage() {
                   Student <span className="text-red-500">*</span>
                 </label>
                 <select name="studentId" value={awardForm.studentId} onChange={handleAwardInput}
-                  className={inputCls(!!awardErrors.studentId)}>
-                  {[...new Set(studentOptions)].map(s => <option key={s} value={s}>{s}</option>)}
+                  disabled={studentOptions.length === 0}
+                  className={`${inputCls(!!awardErrors.studentId)} disabled:opacity-50 disabled:cursor-not-allowed`}>
+                  {studentOptions.length > 0 ? (
+                    [...new Set(studentOptions)].map(s => <option key={s} value={s}>{s}</option>)
+                  ) : (
+                    <option value="">{backendStatus.includes("Offline") ? "Offline - Can't load users" : "Loading students..."}</option>
+                  )}
                 </select>
                 <FieldError msg={awardErrors.studentId} />
               </div>
@@ -319,8 +361,8 @@ export default function AdminCreditPage() {
                 )}
               </div>
 
-              <button type="submit" disabled={awarding}
-                className="w-full rounded-lg bg-violet-700 py-2.5 text-sm font-bold text-white hover:bg-violet-800 disabled:opacity-50">
+              <button type="submit" disabled={awarding || studentOptions.length === 0}
+                className="w-full rounded-lg bg-violet-700 py-2.5 text-sm font-bold text-white hover:bg-violet-800 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors">
                 {awarding ? "Awarding…" : "Award Credits"}
               </button>
             </form>
@@ -329,12 +371,18 @@ export default function AdminCreditPage() {
           {/* ── Student Credits Overview ── */}
           <div>
             <div className="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-2">View Student</label>
+              <label className="block text-xs uppercase tracking-wide text-slate-500 mb-2">View Student History</label>
               <select value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)}
-                className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-                {[...new Set(studentOptions)].map(s => <option key={s} value={s}>{s}</option>)}
+                disabled={studentOptions.length === 0}
+                className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                {studentOptions.length > 0 ? (
+                  [...new Set(studentOptions)].map(s => <option key={s} value={s}>{s}</option>)
+                ) : (
+                  <option value="">No students available</option>
+                )}
               </select>
-              {totalCredits !== null && (
+              
+              {totalCredits !== null && selectedStudent && (
                 <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
                   <p className="text-xs uppercase tracking-wide text-emerald-600">Total Credits</p>
                   <p className="text-4xl font-extrabold text-emerald-800">{totalCredits}</p>
@@ -345,9 +393,11 @@ export default function AdminCreditPage() {
               )}
             </div>
 
-            <h3 className="mb-2 font-semibold text-slate-700">Credit History — {selectedStudent}</h3>
+            <h3 className="mb-2 font-semibold text-slate-700">
+              Credit History {selectedStudent ? `— ${selectedStudent}` : ""}
+            </h3>
             {history.length === 0 ? (
-              <p className="rounded-xl border bg-slate-50 py-8 text-center text-sm text-slate-400">No credit history yet.</p>
+              <p className="rounded-xl border bg-slate-50 py-8 text-center text-sm text-slate-400">No credit history yet for this user.</p>
             ) : (
               <div className="overflow-hidden rounded-xl border border-slate-100">
                 <table className="w-full text-sm">
@@ -361,7 +411,7 @@ export default function AdminCreditPage() {
                   </thead>
                   <tbody>
                     {history.map((tx, i) => (
-                      <tr key={tx.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <tr key={tx.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50 hover:bg-slate-100"}>
                         <td className="px-3 py-2">
                           <span className="font-medium">{tx.activity}</span>
                           {tx.type === "AUTO_DOWNLOAD" && (
@@ -373,9 +423,9 @@ export default function AdminCreditPage() {
                         <td className="px-3 py-2">
                           <div className="flex justify-center gap-1">
                             <button onClick={() => { setEditingTx({ id: tx.id, activity: tx.activity, credits: tx.credits }); setEditErrors({}); }}
-                              className="rounded border border-violet-300 px-2 py-0.5 text-xs text-violet-700 hover:bg-violet-50">✏</button>
+                              className="rounded border border-violet-300 px-2 py-0.5 text-xs text-violet-700 hover:bg-violet-100 transition-colors">✏</button>
                             <button onClick={() => handleDeleteTx(tx)}
-                              className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-700 hover:bg-rose-50">🗑</button>
+                              className="rounded border border-rose-300 px-2 py-0.5 text-xs text-rose-700 hover:bg-rose-100 transition-colors">🗑</button>
                           </div>
                         </td>
                       </tr>
@@ -391,4 +441,3 @@ export default function AdminCreditPage() {
     </main>
   );
 }
-

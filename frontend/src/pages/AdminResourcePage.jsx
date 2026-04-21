@@ -9,13 +9,21 @@ function FieldError({ msg }) {
   if (!msg) return null;
   return <p className="mt-1 text-xs text-red-500 flex items-center gap-1">⚠ {msg}</p>;
 }
+
 function inputCls(hasError) {
-  return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${hasError ? "border-red-400 bg-red-50 focus:ring-1 focus:ring-red-400 focus:outline-none" : "border-slate-200 focus:ring-1 focus:ring-violet-400 focus:outline-none"}`;
+  return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${
+    hasError 
+      ? "border-red-400 bg-red-50 focus:ring-1 focus:ring-red-400 focus:outline-none" 
+      : "border-slate-200 focus:ring-1 focus:ring-violet-400 focus:outline-none"
+  }`;
 }
 
-export default function AdminResourcePage() {
+export default function AdminResourceApprovalPage() {
   const [resources, setResources] = useState([]);
-  const [statusTab, setStatusTab] = useState("ALL");
+  
+  // DEFAULT TO "ALL" TO SEE EVERYTHING (APPROVED, PENDING, ETC.)
+  const [statusTab, setStatusTab] = useState("ALL"); 
+  
   const [search, setSearch] = useState("");
   const [filterFileType, setFilterFileType] = useState("");
   const [editing, setEditing] = useState(null);
@@ -24,6 +32,20 @@ export default function AdminResourcePage() {
   const [uploadErrors, setUploadErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
+
+  // --- ROLE VERIFICATION ---
+  const [userRole, setUserRole] = useState("");
+  
+  useEffect(() => {
+    // Fetch the role from localStorage when the component mounts
+    const role = localStorage.getItem("role");
+    if (role) {
+      setUserRole(role);
+    }
+  }, []);
+
+  // Boolean to easily check if the user is an admin
+  const isAdmin = userRole === "Admin";
 
   const loadResources = useCallback(async () => {
     try {
@@ -39,7 +61,7 @@ export default function AdminResourcePage() {
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
     total:    resources.length,
-    pending:  resources.filter(r => r.status === "PENDING").length,
+    pending:  resources.filter(r => r.status === "PENDING" || !r.status).length, 
     approved: resources.filter(r => r.status === "APPROVED").length,
     rejected: resources.filter(r => r.status === "REJECTED").length,
   }), [resources]);
@@ -47,13 +69,24 @@ export default function AdminResourcePage() {
   // ── Filtered list ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = [...resources].sort((a, b) => Number(b.id) - Number(a.id));
-    if (statusTab !== "ALL") list = list.filter(r => r.status === statusTab);
+    
+    // Apply tab filter
+    if (statusTab !== "ALL") {
+      if (statusTab === "PENDING") {
+        list = list.filter(r => r.status === "PENDING" || !r.status);
+      } else {
+        list = list.filter(r => r.status === statusTab);
+      }
+    }
+    
+    // Apply search and type filters
     if (search.trim()) list = list.filter(r => r.title?.toLowerCase().includes(search.toLowerCase()));
     if (filterFileType) list = list.filter(r => r.fileType?.toLowerCase() === filterFileType);
+    
     return list;
   }, [resources, statusTab, search, filterFileType]);
 
-  // ── Upload (admin → auto-approved) ────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────
   function handleUploadInput(e) {
     const { name, value, files } = e.target;
     if (name === "file") { setUploadForm(p => ({ ...p, file: files?.[0] || null })); }
@@ -109,39 +142,60 @@ export default function AdminResourcePage() {
 
   async function handleUpload(e) {
     e.preventDefault();
+    
+    // Security check: Admins cannot upload
+    if (isAdmin) {
+      alert("Admins are not permitted to upload resources.");
+      return;
+    }
+    
     if (!validateUpload()) return;
+    
     const { title, category, description, file } = uploadForm;
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("title", title.trim()); fd.append("category", category.trim());
-      fd.append("description", description.trim()); fd.append("file", file);
-      fd.append("uploadedBy", "admin");
+      fd.append("title", title.trim()); 
+      fd.append("category", category.trim());
+      fd.append("description", description.trim()); 
+      fd.append("file", file);
+      fd.append("uploadedBy", userRole || "Academic Panel"); // Use dynamic role
+      
       const res = await fetch(`${API_BASE}/resources/upload`, { method: "POST", body: fd });
       if (!res.ok) throw new Error();
+      
       const saved = await res.json();
-      // Admin uploads go straight to APPROVED
-      const approveRes = await fetch(`${API_BASE}/resources/${saved.id}/approve`, { method: "PUT" });
-      const final = approveRes.ok ? await approveRes.json() : { ...saved, status: "APPROVED" };
-      setResources(prev => [final, ...prev]);
+      
+      setResources(prev => [{ ...saved, status: saved.status || "PENDING" }, ...prev]);
       setUploadForm({ title: "", category: "", description: "", file: null });
       setUploadErrors({});
+      
+      setStatusTab("PENDING");
+      
     } catch { alert("Upload failed."); }
     finally { setUploading(false); }
   }
 
   // ── Approve / Reject ──────────────────────────────────────────────────────
   async function setStatus(id, action) {
-    const res = await fetch(`${API_BASE}/resources/${id}/${action}`, { method: "PUT" });
-    if (res.ok) {
-      const updated = await res.json();
-      setResources(prev => prev.map(r => r.id === id ? updated : r));
+    if (!isAdmin) return; // Security check
+    try {
+      const res = await fetch(`${API_BASE}/resources/${id}/${action}`, { method: "PUT" });
+      if (res.ok) {
+        const updated = await res.json();
+        setResources(prev => prev.map(r => r.id === id ? updated : r));
+      } else {
+        alert("Failed to update status.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error while updating status.");
     }
   }
 
   // ── Edit ──────────────────────────────────────────────────────────────────
   async function handleEditSave() {
-    if (!validateEdit()) return;
+    if (!isAdmin || !validateEdit()) return; // Security check
     try {
       const res = await fetch(`${API_BASE}/resources/${editing.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
@@ -157,7 +211,7 @@ export default function AdminResourcePage() {
 
   // ── Delete ────────────────────────────────────────────────────────────────
   async function handleDelete(id) {
-    if (!window.confirm("Permanently delete this resource?")) return;
+    if (!isAdmin || !window.confirm("Permanently delete this resource?")) return; // Security check
     try {
       await fetch(`${API_BASE}/resources/${id}`, { method: "DELETE" });
       setResources(prev => prev.filter(r => r.id !== id));
@@ -178,8 +232,8 @@ export default function AdminResourcePage() {
   return (
     <main className="min-h-screen w-[83vw] ml-[17vw] mt-[5vh] px-4 pb-10 text-slate-800">
 
-      {/* Edit Modal */}
-      {editing && (
+      {/* Edit Modal (Only for Admin) */}
+      {isAdmin && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <h3 className="mb-4 text-lg font-bold text-violet-800">Edit Resource</h3>
@@ -218,8 +272,8 @@ export default function AdminResourcePage() {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={handleEditSave} className="flex-1 rounded-lg bg-violet-700 py-2 text-sm font-bold text-white hover:bg-violet-800">Save</button>
-              <button onClick={() => { setEditing(null); setEditErrors({}); }} className="flex-1 rounded-lg border py-2 text-sm hover:bg-slate-50">Cancel</button>
+              <button onClick={handleEditSave} className="flex-1 rounded-lg bg-violet-700 py-2 text-sm font-bold text-white hover:bg-violet-800 transition-colors">Save</button>
+              <button onClick={() => { setEditing(null); setEditErrors({}); }} className="flex-1 rounded-lg border py-2 text-sm hover:bg-slate-50 transition-colors">Cancel</button>
             </div>
           </div>
         </div>
@@ -230,10 +284,18 @@ export default function AdminResourcePage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-violet-700 px-2 py-1 text-xs font-bold uppercase text-white">Admin</span>
-              <h2 className="font-display text-2xl font-bold text-violet-900">Resource Management</h2>
+              <span className="rounded-lg bg-violet-700 px-2 py-1 text-xs font-bold uppercase text-white">
+                {userRole || "User"}
+              </span>
+              <h2 className="font-display text-2xl font-bold text-violet-900">
+                {isAdmin ? "Resource Approvals" : "Resource Management"}
+              </h2>
             </div>
-            <p className="mt-1 text-sm text-slate-500">Approve, edit, delete and upload resources</p>
+            <p className="mt-1 text-sm text-slate-500">
+              {isAdmin 
+                ? "Review pending submissions, manage files, and moderate content" 
+                : "Upload new educational resources and view current approval status"}
+            </p>
           </div>
           <p className={`rounded-md px-3 py-1 text-xs font-semibold ${backendStatus === "Online" ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-700"}`}>
             ● {backendStatus}
@@ -255,66 +317,68 @@ export default function AdminResourcePage() {
           ))}
         </div>
 
-        {/* Upload Form */}
-        <details className="mb-6 rounded-xl border border-violet-100 bg-violet-50">
-          <summary className="cursor-pointer select-none rounded-xl px-4 py-3 text-sm font-semibold text-violet-800 hover:bg-violet-100">
-            ＋ Upload New Resource (Auto-Approved)
-          </summary>
-          <form onSubmit={handleUpload} className="grid gap-3 p-4 md:grid-cols-2" noValidate>
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-600">
-                Title <span className="text-red-500">*</span>
-              </label>
-              <input name="title" value={uploadForm.title} onChange={handleUploadInput}
-                placeholder="E.g. ITPM Chapter 3" maxLength={100}
-                className={inputCls(!!uploadErrors.title)} />
-              <FieldError msg={uploadErrors.title} />
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-600">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <input name="category" value={uploadForm.category} onChange={handleUploadInput}
-                placeholder="E.g. Project Management" maxLength={50}
-                className={inputCls(!!uploadErrors.category)} />
-              <FieldError msg={uploadErrors.category} />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase tracking-wide text-slate-600">
-                Description <span className="text-red-500">*</span>
-              </label>
-              <textarea name="description" value={uploadForm.description} onChange={handleUploadInput}
-                rows={2} maxLength={500} placeholder="Min. 10 characters…"
-                className={inputCls(!!uploadErrors.description)} />
-              <div className="flex justify-between items-start">
-                <FieldError msg={uploadErrors.description} />
-                <span className={`text-[11px] ${uploadForm.description.length > 450 ? "text-amber-500" : "text-slate-400"}`}>
-                  {uploadForm.description.length}/500
-                </span>
+        {/* Upload Form - Visible for Academic Panel, Hidden for Admin */}
+        {!isAdmin && (
+          <details className="mb-6 rounded-xl border border-violet-100 bg-violet-50">
+            <summary className="cursor-pointer select-none rounded-xl px-4 py-3 text-sm font-semibold text-violet-800 hover:bg-violet-100 transition-colors">
+              ＋ Upload New Resource
+            </summary>
+            <form onSubmit={handleUpload} className="grid gap-3 p-4 md:grid-cols-2" noValidate>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-slate-600">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <input name="title" value={uploadForm.title} onChange={handleUploadInput}
+                  placeholder="E.g. ITPM Chapter 3" maxLength={100}
+                  className={inputCls(!!uploadErrors.title)} />
+                <FieldError msg={uploadErrors.title} />
               </div>
-            </div>
-            <div>
-              <label className="block text-xs uppercase tracking-wide text-slate-600">
-                File <span className="text-red-500">*</span>
-              </label>
-              <input type="file" name="file" onChange={handleUploadInput}
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
-                className={inputCls(!!uploadErrors.file)} />
-              <FieldError msg={uploadErrors.file} />
-            </div>
-            <div className="flex items-end">
-              <button type="submit" disabled={uploading}
-                className="rounded-lg bg-violet-700 px-5 py-2 text-sm font-bold text-white hover:bg-violet-800 disabled:opacity-50">
-                {uploading ? "Uploading…" : "Upload"}
-              </button>
-            </div>
-          </form>
-        </details>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-slate-600">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <input name="category" value={uploadForm.category} onChange={handleUploadInput}
+                  placeholder="E.g. Project Management" maxLength={50}
+                  className={inputCls(!!uploadErrors.category)} />
+                <FieldError msg={uploadErrors.category} />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs uppercase tracking-wide text-slate-600">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea name="description" value={uploadForm.description} onChange={handleUploadInput}
+                  rows={2} maxLength={500} placeholder="Min. 10 characters…"
+                  className={inputCls(!!uploadErrors.description)} />
+                <div className="flex justify-between items-start">
+                  <FieldError msg={uploadErrors.description} />
+                  <span className={`text-[11px] ${uploadForm.description.length > 450 ? "text-amber-500" : "text-slate-400"}`}>
+                    {uploadForm.description.length}/500
+                  </span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wide text-slate-600">
+                  File <span className="text-red-500">*</span>
+                </label>
+                <input type="file" name="file" onChange={handleUploadInput}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                  className={inputCls(!!uploadErrors.file)} />
+                <FieldError msg={uploadErrors.file} />
+              </div>
+              <div className="flex items-end">
+                <button type="submit" disabled={uploading}
+                  className="rounded-lg bg-violet-700 px-5 py-2 text-sm font-bold text-white hover:bg-violet-800 disabled:opacity-50 transition-colors">
+                  {uploading ? "Uploading…" : "Upload to Queue"}
+                </button>
+              </div>
+            </form>
+          </details>
+        )}
 
         {/* Filter Bar */}
         <div className="mb-4 flex flex-wrap gap-3">
           <div className="flex flex-wrap gap-2">
-            {["ALL","PENDING","APPROVED","REJECTED"].map(tab => (
+            {["ALL", "PENDING", "APPROVED", "REJECTED"].map(tab => (
               <button key={tab} onClick={() => setStatusTab(tab)} className={tabStyle(tab)}>
                 {tab} {tab === "PENDING" && stats.pending > 0 && (
                   <span className="ml-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] text-white">{stats.pending}</span>
@@ -322,16 +386,16 @@ export default function AdminResourcePage() {
               </button>
             ))}
           </div>
-          <input type="search" placeholder="🔍 Search…" value={search} onChange={e => setSearch(e.target.value)}
-            className="min-w-36 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input type="search" placeholder="🔍 Search resources..." value={search} onChange={e => setSearch(e.target.value)}
+            className="min-w-36 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-1 focus:ring-violet-400 focus:outline-none" />
           <select value={filterFileType} onChange={e => setFilterFileType(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:ring-1 focus:ring-violet-400 focus:outline-none">
             <option value="">All Types</option>
             {["pdf","doc","docx","ppt","pptx","txt","zip"].map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
           </select>
         </div>
 
-        <p className="mb-3 text-xs text-slate-400">{filtered.length} resource(s)</p>
+        <p className="mb-3 text-xs text-slate-400">Showing {filtered.length} resource(s) in {statusTab}</p>
 
         {/* Resource Table */}
         <div className="overflow-hidden rounded-xl border border-slate-100">
@@ -343,50 +407,63 @@ export default function AdminResourcePage() {
                 <th className="px-4 py-3 text-center">Type</th>
                 <th className="px-4 py-3 text-center">Date</th>
                 <th className="px-4 py-3 text-center">Status</th>
-                <th className="px-4 py-3 text-center">Actions</th>
+                {/* Actions header only for Admins */}
+                {isAdmin && <th className="px-4 py-3 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r, i) => (
-                <tr key={r.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+              {filtered.map((r, i) => {
+                const currentStatus = r.status || "PENDING";
+                
+                return (
+                <tr key={r.id} className={i % 2 === 0 ? "bg-white" : "bg-slate-50 hover:bg-slate-100"}>
                   <td className="px-4 py-3">
                     <p className="font-medium">{r.title}</p>
                     <p className="text-xs text-slate-400 line-clamp-1">{r.description}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">{r.category}</td>
                   <td className="px-4 py-3 text-center">
-                    {r.fileType && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase">{r.fileType}</span>}
+                    {r.fileType && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase border border-slate-200">{r.fileType}</span>}
                   </td>
                   <td className="px-4 py-3 text-center text-xs text-slate-400">{r.uploadDate || "—"}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${statusStyle[r.status] || "bg-slate-100 text-slate-500"}`}>
-                      {r.status}
+                    <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${statusStyle[currentStatus] || "bg-amber-100 text-amber-800"}`}>
+                      {currentStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap justify-center gap-1">
-                      {r.status === "PENDING" && (
-                        <>
-                          <button onClick={() => setStatus(r.id, "approve")} className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700">✓ Approve</button>
-                          <button onClick={() => setStatus(r.id, "reject")} className="rounded bg-rose-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-600">✕ Reject</button>
-                        </>
-                      )}
-                      {r.status === "REJECTED" && (
-                        <button onClick={() => setStatus(r.id, "approve")} className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700">Re-approve</button>
-                      )}
-                      {r.status === "APPROVED" && (
-                        <button onClick={() => setStatus(r.id, "reject")} className="rounded border border-rose-300 px-2 py-1 text-[11px] text-rose-700 hover:bg-rose-50">Reject</button>
-                      )}
-                      <button onClick={() => { setEditing({ id: r.id, title: r.title, category: r.category, description: r.description || "" }); setEditErrors({}); }}
-                        className="rounded border border-violet-300 px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-50">✏ Edit</button>
-                      <button onClick={() => handleDelete(r.id)}
-                        className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-700 hover:bg-red-50">🗑</button>
-                    </div>
+                  
+                  {/* Actions cell only for Admins */}
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {currentStatus === "PENDING" && (
+                          <>
+                            <button onClick={() => setStatus(r.id, "approve")} className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700 transition-colors">✓ Approve</button>
+                            <button onClick={() => setStatus(r.id, "reject")} className="rounded bg-rose-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-rose-600 transition-colors">✕ Reject</button>
+                          </>
+                        )}
+                        {currentStatus === "REJECTED" && (
+                          <button onClick={() => setStatus(r.id, "approve")} className="rounded bg-emerald-600 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-700 transition-colors">Re-approve</button>
+                        )}
+                        {currentStatus === "APPROVED" && (
+                          <button onClick={() => setStatus(r.id, "reject")} className="rounded border border-rose-300 px-2 py-1 text-[11px] text-rose-700 hover:bg-rose-50 transition-colors">Reject</button>
+                        )}
+                        <button onClick={() => { setEditing({ id: r.id, title: r.title, category: r.category, description: r.description || "" }); setEditErrors({}); }}
+                          className="rounded border border-violet-300 px-2 py-1 text-[11px] text-violet-700 hover:bg-violet-50 transition-colors">✏ Edit</button>
+                        <button onClick={() => handleDelete(r.id)}
+                          className="rounded border border-red-300 px-2 py-1 text-[11px] text-red-700 hover:bg-red-50 transition-colors">🗑</button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              )})}
+              
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={isAdmin ? 6 : 5} className="py-12 text-center text-sm text-slate-400">
+                    No resources found in this category.
                   </td>
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} className="py-12 text-center text-sm text-slate-400">No resources found.</td></tr>
               )}
             </tbody>
           </table>
@@ -395,4 +472,3 @@ export default function AdminResourcePage() {
     </main>
   );
 }
-

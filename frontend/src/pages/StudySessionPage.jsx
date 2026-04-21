@@ -12,10 +12,15 @@ export default function StudySessionPage() {
 
   // 2. Fetch the current user when the component mounts
   useEffect(() => {
-    // Replace "userEmail" with whatever key you used to save the user's data during login
-    const storedUser = localStorage.getItem("userEmail"); 
+    // Retrieving the user object saved by the Login component
+    const storedUser = localStorage.getItem("user"); 
     if (storedUser) {
-      setCurrentUser(storedUser);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser.username); 
+      } catch (err) {
+        console.error("Failed to parse user data", err);
+      }
     }
   }, []);
 
@@ -34,12 +39,18 @@ export default function StudySessionPage() {
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
   async function handleJoin(sessionId) {
-    if (!currentUser) return alert("User not identified. Please log in.");
+    if (!currentUser) {
+      alert("Please log in to join a session.");
+      return;
+    }
 
     try {
       // 3. Use the dynamic currentUser here
       const res = await fetch(`${API_BASE}/sessions/${sessionId}/join?userId=${currentUser}`, { method: "POST" });
-      if (res.ok) { const updated = await res.json(); setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); }
+      if (res.ok) { 
+        const updated = await res.json(); 
+        setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); 
+      }
     } catch { /* offline */ }
   }
 
@@ -49,7 +60,10 @@ export default function StudySessionPage() {
     try {
       // 3. Use the dynamic currentUser here
       const res = await fetch(`${API_BASE}/sessions/${sessionId}/leave?userId=${currentUser}`, { method: "POST" });
-      if (res.ok) { const updated = await res.json(); setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); }
+      if (res.ok) { 
+        const updated = await res.json(); 
+        setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); 
+      }
     } catch { /* ignore */ }
   }
 
@@ -77,7 +91,9 @@ export default function StudySessionPage() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-3xl font-bold text-sky-800">Study Support Sessions</h2>
-            <p className="text-sm text-slate-500">View and join live sessions with tutors and peers</p>
+            <p className="text-sm text-slate-500">
+              {currentUser ? `View and join live sessions as ${currentUser}` : "Log in to view and join live sessions with tutors and peers"}
+            </p>
           </div>
           <p className="rounded-md bg-sky-50 px-3 py-1 text-xs text-sky-800">{backendStatus}</p>
         </div>
@@ -119,7 +135,7 @@ export default function StudySessionPage() {
                   <span>👥 {count} attendee{count !== 1 ? "s" : ""}</span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-2 items-center">
                   {joined ? (
                     <>
                       <a href={session.meetingLink} target="_blank" rel="noreferrer"
@@ -127,18 +143,18 @@ export default function StudySessionPage() {
                         🔗 Join Meeting
                       </a>
                       <button onClick={() => handleLeave(session.id)}
-                        className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">
+                        className="rounded border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 transition-colors">
                         Leave
                       </button>
+                      <span className="rounded bg-emerald-100 px-2 py-1.5 text-xs font-semibold text-emerald-700 ml-auto">✓ Registered</span>
                     </>
                   ) : (
-                    <button onClick={() => handleJoin(session.id)}
-                      className="rounded bg-sky-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-700">
-                      ✋ Join Session
+                    <button 
+                      onClick={() => handleJoin(session.id)}
+                      disabled={!currentUser}
+                      className="rounded bg-sky-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors">
+                      {currentUser ? "✋ Join Session" : "Log in to Join"}
                     </button>
-                  )}
-                  {joined && (
-                    <span className="rounded bg-emerald-100 px-2 py-1.5 text-xs font-semibold text-emerald-700">✓ Registered</span>
                   )}
                 </div>
               </article>

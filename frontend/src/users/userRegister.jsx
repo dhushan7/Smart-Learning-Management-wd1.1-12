@@ -84,6 +84,27 @@ export default function UserRegister({ closeModal, openLogin }) {
     calculateStrength(val);
   };
 
+  // Helper function to demo registration (data)
+  const fillDemoData = () => {
+    const demoPassword = "123456";
+    setFormData({
+      username: "madhushan.m21",
+      name: "Minindu Madhushan",
+      email: "it23617414@my.sliit.lk",
+      password: demoPassword,
+      confirmPassword: demoPassword,
+    });
+    setErrors({});
+    setSuccess("");
+    setUsernameAvailable(null);
+    calculateStrength(demoPassword);
+    
+    // Reset OTP state in case that click it after starting a registration
+    setOtpSent(false);
+    setOtp("");
+    setTimer(0);
+  };
+
   // USERNAME CHECK (API)
   const checkUsername = async (username) => {
     if (!username) return false;
@@ -345,7 +366,7 @@ export default function UserRegister({ closeModal, openLogin }) {
             type="button"
             onClick={sendOTP}
             disabled={loading}
-            className="w-full py-2 rounded-lg bg-blue-500 text-white"
+            className="w-full py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
           >
             {loading ? "Sending..." : "Send OTP"}
           </button>
@@ -384,12 +405,28 @@ export default function UserRegister({ closeModal, openLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 rounded-lg bg-green-500 text-white"
+            className="w-full py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
           >
             {loading ? "Registering..." : "Verify & Register"}
           </button>
         )}
       </form>
+
+      {/* Demo Links */}
+      <div className="mt-6 pt-4 border-t border-white/20">
+        <p className="text-xs text-center text-white/60 mb-3 uppercase tracking-wider">
+          Demo Registration
+        </p>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={fillDemoData}
+            className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10 text-sm"
+          >
+            Student Register 
+          </button>
+        </div>
+      </div>
 
       <div className="text-center mt-5 text-white text-sm">
         Already have an account?{" "}

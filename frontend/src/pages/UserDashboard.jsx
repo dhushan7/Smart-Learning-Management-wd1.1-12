@@ -9,6 +9,7 @@ import {
   Cog6ToothIcon,
   DocumentChartBarIcon,
   TrophyIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import CommunityChatbot from "../pages/CommunityChatbot";
@@ -59,7 +60,7 @@ export default function Dashboard() {
               <DashboardCard title="Quizzes" icon={<AcademicCapIcon className="h-12 w-12 text-pink-500" />} />
             </Link>
             <Link to="/sessions">
-              <DashboardCard title="Study Sessions" icon={<StarIcon className="h-12 w-12 text-yellow-500" />} />
+              <DashboardCard title="Study Sessions" icon={<VideoCameraIcon className="h-12 w-12 text-yellow-500" />} />
             </Link>        
           </div>
         </div>
@@ -85,11 +86,14 @@ export default function Dashboard() {
                 <Link to="/admin/users">
                   <DashboardCard title="Manage Users" icon={<UserGroupIcon className="h-12 w-12 text-red-500" />} />
                 </Link>
-                <Link to="/admin/reports">
-                <DashboardCard title="Reports" icon={<DocumentChartBarIcon className="h-12 w-12 text-blue-500" />} />
+                <Link to="/admin/resources">
+                  <DashboardCard title="All Resources" icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />} />
                 </Link>
                 <Link to="/admin/credits">
-                <DashboardCard title="Credits" icon={<TrophyIcon className="h-12 w-12 text-indigo-500" />} />
+                  <DashboardCard title="Credits" icon={<TrophyIcon className="h-12 w-12 text-indigo-500" />} />
+                </Link>
+                <Link to="/admin/reports">
+                  <DashboardCard title="Reports" icon={<DocumentChartBarIcon className="h-12 w-12 text-blue-500" />} />
                 </Link>
               </>
             )}
@@ -103,7 +107,7 @@ export default function Dashboard() {
                 <DashboardCard title="All Resources" icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />} />
               </Link>
               <Link to="/admin/sessions">
-                <DashboardCard title="My Resources" icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />} />
+                <DashboardCard title="Study Sessions" icon={<VideoCameraIcon className="h-12 w-12 text-indigo-500" />} />
               </Link>
               </>
             )}

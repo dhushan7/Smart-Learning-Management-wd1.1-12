@@ -29,10 +29,10 @@ import AdminSessionPage from "./pages/AdminSessionPage";
 
 function App() {
 
-    const role = localStorage.getItem("role");
+    // const role = localStorage.getItem("role");
     
-    const isStudent = role === "Student";
-    const isAdmin = role === "Admin" || role === "Academic Panel";
+    // const isStudent = role === "Student";
+    // const isAdmin = role === "Admin" || role === "Academic Panel";
 
     return (
         <ToastProvider>
@@ -80,7 +80,7 @@ function App() {
 
                 </Routes>
                     
-                {isStudent && <CommunityChatbot />}
+                <CommunityChatbot />
             </BrowserRouter>
         </ToastProvider>
     );

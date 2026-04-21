@@ -1,26 +1,53 @@
 import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = "http://localhost:8086/api";
-const CURRENT_USER = "STU-2026-001";
 
 export default function CreditAwardingPage() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [totalCredits, setTotalCredits] = useState(0);
   const [history, setHistory] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
 
-  const loadData = useCallback(async () => {
-    try {
-      const [credRes, histRes] = await Promise.all([
-        fetch(`${API_BASE}/credits/student/${CURRENT_USER}`),
-        fetch(`${API_BASE}/credits/history/${CURRENT_USER}`),
-      ]);
-      if (credRes.ok) { const d = await credRes.json(); setTotalCredits(d.totalCredits ?? 0); }
-      if (histRes.ok) setHistory(await histRes.json());
-      setBackendStatus("Online: API connected");
-    } catch { setBackendStatus("Offline: backend unavailable"); }
+  // 1. Retrieve the real user from Local Storage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser.username); 
+      } catch (err) {
+        console.error("Failed to parse user data", err);
+      }
+    } else {
+      setBackendStatus("Offline: User not logged in");
+    }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  const loadData = useCallback(async () => {
+    // Only fetch if we have a logged-in user
+    if (!currentUser) return;
+
+    try {
+      const [credRes, histRes] = await Promise.all([
+        fetch(`${API_BASE}/credits/student/${currentUser}`),
+        fetch(`${API_BASE}/credits/history/${currentUser}`),
+      ]);
+      if (credRes.ok) { 
+        const d = await credRes.json(); 
+        setTotalCredits(d.totalCredits ?? 0); 
+      }
+      if (histRes.ok) {
+        setHistory(await histRes.json());
+      }
+      setBackendStatus("Online: API connected");
+    } catch { 
+      setBackendStatus("Offline: backend unavailable"); 
+    }
+  }, [currentUser]); // Added currentUser as dependency
+
+  useEffect(() => { 
+    loadData(); 
+  }, [loadData]);
 
   function formatDate(iso) {
     if (!iso) return "—";
@@ -30,6 +57,18 @@ export default function CreditAwardingPage() {
     });
   }
 
+  // If no user is logged in, show a friendly prompt
+  if (!currentUser) {
+    return (
+      <main className="mx-auto mt-6 max-w-6xl px-4 pb-10 text-slate-800 mt-[10vh]">
+        <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg text-center py-20">
+          <h2 className="font-display text-2xl font-bold text-emerald-800 mb-2">My Credits</h2>
+          <p className="text-slate-500">Please log in to view your credit balance and history.</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto mt-6 max-w-6xl px-4 pb-10 text-slate-800 mt-[10vh] ">
       <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg">
@@ -37,7 +76,7 @@ export default function CreditAwardingPage() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-3xl font-bold text-emerald-800">My Credits</h2>
-            <p className="text-sm text-slate-500">Your total credits and earning history — {CURRENT_USER}</p>
+            <p className="text-sm text-slate-500">Your total credits and earning history — <span className="font-semibold">{currentUser}</span></p>
           </div>
           <p className="rounded-md bg-emerald-50 px-3 py-1 text-xs text-emerald-800">{backendStatus}</p>
         </div>
