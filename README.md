@@ -95,56 +95,81 @@ A floating assistant that helps users:
 ---
 
 ## ⚙️ Backend Setup
+
 bash:
+
 cd smart-learning-backend
 
-Configure application.properties
+
+---
+
+
+## Configure application.properties
+
 spring.datasource.url=jdbc:mysql://localhost:3306/smart_learning_db
+
 spring.datasource.username=root
+
 spring.datasource.password=your_password
 
 spring.mail.username=your_email@example.com
+
 spring.mail.password=your_app_password
 
 Run Backend
+
 mvn spring-boot:run
+
 Backend: http://localhost:8086
 
-⸻
 
-💻 Frontend Setup
+---
+
+
+## 💻 Frontend Setup
+
 cd smart-learning-frontend
+
 npm install
 
-⸻
 
-Environment Configuration
+---
+
+
+## Environment Configuration
+
 REACT_APP_API_BASE_URL=http://localhost:8086
 
-⸻
 
-Run Frontend
+---
+
+## Run Frontend
+
 npm start
+
 
 Frontend: http://localhost:3000
 
-⸻
+---
 
-🤝 Contributing
+## 🤝 Contributing
+
 git checkout -b feature/AmazingFeature
+
 git commit -m "Add AmazingFeature"
+
 git push origin feature/AmazingFeature
 
 
-⸻
+---
 
 
-📄 License
+## 📄 License
 
 MIT License
 
-⸻
+---
 
-⭐ Support
+## ⭐ Support
 
 Give this project a ⭐ if you like it!
