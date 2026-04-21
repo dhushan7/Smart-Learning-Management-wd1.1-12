@@ -8,8 +8,11 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
   DocumentChartBarIcon,
-} from "@heroicons/react/24/solid";
+  TrophyIcon,
+  VideoCameraIcon,
+} from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
+import CommunityChatbot from "../pages/CommunityChatbot";
 
 export default function Dashboard() {
   const role = localStorage.getItem("role");
@@ -24,7 +27,7 @@ export default function Dashboard() {
 
   const isStudent = role === "Student";
   const isAdminOrPanel = role === "Admin" || role === "Academic Panel";
-
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-gray-50 flex justify-center p-8 font-sans">
 
@@ -41,11 +44,24 @@ export default function Dashboard() {
           </header>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-            <DashboardCard title="Resources" icon={<BookOpenIcon className="h-12 w-24 text-indigo-500" />} />
-            <DashboardCard title="My Tasks" icon={<ClipboardDocumentListIcon className="h-12 w-24 text-green-500" />} />
-            <DashboardCard title="Progress" icon={<ChartBarIcon className="h-12 w-24 text-purple-500" />} />
-            <DashboardCard title="Quizzes" icon={<AcademicCapIcon className="h-12 w-24 text-pink-500" />} />
-            <DashboardCard title="My Ratings" icon={<StarIcon className="h-12 w-24 text-yellow-500" />} />
+            <Link to="/resources">
+              <DashboardCard
+                title="Resources"
+                icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />}
+              />
+            </Link>
+            <Link to="/tasks">
+              <DashboardCard title="My Tasks" icon={<ClipboardDocumentListIcon className="h-12 w-12 text-green-500" />} />
+            </Link>
+            <Link to="/reviews">
+              <DashboardCard title="Review" icon={<StarIcon className="h-12 w-12 text-purple-500" />} />
+            </Link>
+            <Link to="/quiz-bank">
+              <DashboardCard title="Quizzes" icon={<AcademicCapIcon className="h-12 w-12 text-pink-500" />} />
+            </Link>
+            <Link to="/sessions">
+              <DashboardCard title="Study Sessions" icon={<VideoCameraIcon className="h-12 w-12 text-yellow-500" />} />
+            </Link>        
           </div>
         </div>
       )}
@@ -68,24 +84,31 @@ export default function Dashboard() {
             {role === "Admin" && (
               <>
                 <Link to="/admin/users">
-                  <DashboardCard title="Manage Users" icon={<UserGroupIcon className="h-12 w-24 text-red-500" />} />
+                  <DashboardCard title="Manage Users" icon={<UserGroupIcon className="h-12 w-12 text-red-500" />} />
                 </Link>
-
-                <DashboardCard title="System Settings" icon={<Cog6ToothIcon className="h-12 w-24 text-gray-500" />} />
-
-                <DashboardCard title="Reports" icon={<DocumentChartBarIcon className="h-12 w-24 text-blue-500" />} />
-
-                <DashboardCard title="Resources" icon={<BookOpenIcon className="h-12 w-24 text-indigo-500" />} />
+                <Link to="/admin/resources">
+                  <DashboardCard title="All Resources" icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />} />
+                </Link>
+                <Link to="/admin/credits">
+                  <DashboardCard title="Credits" icon={<TrophyIcon className="h-12 w-12 text-indigo-500" />} />
+                </Link>
+                <Link to="/admin/reports">
+                  <DashboardCard title="Reports" icon={<DocumentChartBarIcon className="h-12 w-12 text-blue-500" />} />
+                </Link>
               </>
             )}
 
             {role === "Academic Panel" && (
               <>
-                <DashboardCard title="Review Students" icon={<UserGroupIcon className="h-12 w-24 text-blue-500" />} />
-                <DashboardCard title="Manage Courses" icon={<BookOpenIcon className="h-12 w-24 text-indigo-500" />} />
-                <DashboardCard title="Analytics" icon={<ChartBarIcon className="h-12 w-24 text-purple-500" />} />
-                <DashboardCard title="All Resources" icon={<BookOpenIcon className="h-12 w-24 text-indigo-500" />} />
-                <DashboardCard title="My Resources" icon={<BookOpenIcon className="h-12 w-24 text-indigo-500" />} />
+              <Link to="/admin/users">
+                <DashboardCard title="Review Students" icon={<UserGroupIcon className="h-12 w-12 text-blue-500" />} />
+              </Link>
+              <Link to="/admin/resources">
+                <DashboardCard title="All Resources" icon={<BookOpenIcon className="h-12 w-12 text-indigo-500" />} />
+              </Link>
+              <Link to="/admin/sessions">
+                <DashboardCard title="Study Sessions" icon={<VideoCameraIcon className="h-12 w-12 text-indigo-500" />} />
+              </Link>
               </>
             )}
 
@@ -99,7 +122,7 @@ export default function Dashboard() {
 
 function DashboardCard({ title, icon }) {
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-md hover:shadow-xl transition cursor-pointer w-64 text-center">
+    <div className="bg-white p-6 rounded-3xl shadow-md hover:shadow-xl transition cursor-pointer w-64 flex flex-col items-center justify-center text-center">
       {icon}
       <h2 className="mt-4 text-2xl font-semibold text-gray-800">{title}</h2>
     </div>

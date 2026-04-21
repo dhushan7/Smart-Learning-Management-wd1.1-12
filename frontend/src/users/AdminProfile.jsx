@@ -25,7 +25,7 @@ export default function AdminProfile() {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-100">
-        <div className="text-gray-600 font-medium animate-pulse">
+        <div className="text-gray-600 font-medium">
           Loading profile...
         </div>
       </div>

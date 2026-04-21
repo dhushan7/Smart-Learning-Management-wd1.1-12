@@ -26,6 +26,16 @@ export default function Login({ closeModal }) {
     setSuccess("");
   };
 
+  // --- NEW: Helper function to auto-fill demo credentials ---
+  const fillDemoData = (demoUsername, demoPassword) => {
+    setFormData({
+      username: demoUsername,
+      password: demoPassword,
+    });
+    setError("");
+    setSuccess("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -60,8 +70,7 @@ export default function Login({ closeModal }) {
       }
 
       if (response.ok) {
-
-        // UILD USER OBJECT
+        // BUILD USER OBJECT
         const userData = {
           username: data.username || data.user?.username || formData.username,
           email: data.email || data.user?.email || "",
@@ -80,7 +89,6 @@ export default function Login({ closeModal }) {
           closeModal?.();
           navigate("/dashboard");
         }, 800);
-
       } else {
         setError(data?.message || data || "Invalid username or password");
       }
@@ -91,7 +99,6 @@ export default function Login({ closeModal }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-
       {/* backdrop */}
       <div
         className="absolute inset-0 backdrop-blur-sm"
@@ -120,13 +127,10 @@ export default function Login({ closeModal }) {
         {success && (
           <p className="text-green-300 text-center mb-3">{success}</p>
         )}
-        {error && (
-          <p className="text-red-300 text-center mb-3">{error}</p>
-        )}
+        {error && <p className="text-red-300 text-center mb-3">{error}</p>}
 
         {/* form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <FloatingInput
             name="username"
             label="Username or Email"
@@ -144,7 +148,7 @@ export default function Login({ closeModal }) {
 
           <button
             type="submit"
-            className="w-full py-2 rounded-lg bg-white/30 hover:bg-white/40 text-white font-semibold"
+            className="w-full py-2 rounded-lg bg-white/30 hover:bg-white/40 text-white font-semibold transition-colors"
           >
             Login
           </button>
@@ -161,6 +165,36 @@ export default function Login({ closeModal }) {
               Register
             </span>
           </p>
+        </div>
+
+        {/* --- NEW: Demo Links Section --- */}
+        <div className="mt-6 pt-4 border-t border-white/20">
+          <p className="text-xs text-center text-white/60 mb-3 uppercase tracking-wider">
+            Demo Logins
+          </p>
+          <div className="flex justify-center gap-3 text-sm">
+            <button
+              type="button"
+              onClick={() => fillDemoData("madhushan", "123456")}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10"
+            >
+              User
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoData("md", "123456")}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10"
+            >
+              Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => fillDemoData("ashinpoo", "123456")}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/10"
+            >
+              Academic
+            </button>
+          </div>
         </div>
       </div>
 
