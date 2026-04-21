@@ -6,11 +6,16 @@ import "../App.css";
 function QuizAttempt() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const quiz = useMemo(() => quizzes.find((q) => q.id === Number(id)), [id]);
+
+  const quiz = useMemo(
+    () => quizzes.find((q) => q.id === Number(id)),
+    [id]
+  );
 
   const [answers, setAnswers] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
   const [unansweredIds, setUnansweredIds] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!quiz) {
     return <div className="page-container">Quiz not found.</div>;
@@ -26,38 +31,58 @@ function QuizAttempt() {
     setUnansweredIds((prev) => prev.filter((id) => id !== questionId));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const unansweredQuestions = quiz.questions.filter(
-      (question) => !answers[question.id]
+      (q) => !answers[q.id]
     );
 
     if (unansweredQuestions.length > 0) {
       const missingIds = unansweredQuestions.map((q) => q.id);
-
       setUnansweredIds(missingIds);
       setErrorMessage("Please answer all questions before submitting the quiz.");
 
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     let score = 0;
-
-    quiz.questions.forEach((question) => {
-      if (answers[question.id] === question.correctAnswer) {
-        score += 1;
-      }
+    quiz.questions.forEach((q) => {
+      if (answers[q.id] === q.correctAnswer) score++;
     });
+
+    const total = quiz.questions.length;
+    const percentage = (score / total) * 100;
+
+    const email = localStorage.getItem("email") || "guest@gmail.com";
+
+    setSubmitting(true);
+
+    try {
+      await fetch("http://localhost:8086/api/quiz-attempts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          score,
+          totalQuestions: total,
+          percentage,
+        }),
+      });
+    } catch (err) {
+      console.error("Error saving attempt:", err);
+    } finally {
+      setSubmitting(false);
+    }
 
     navigate("/quiz-result", {
       state: {
         title: quiz.title,
         score,
-        total: quiz.questions.length,
+        total,
       },
     });
   };
@@ -77,42 +102,41 @@ function QuizAttempt() {
         </div>
       )}
 
-      {quiz.questions.map((question, index) => (
+      {quiz.questions.map((q, index) => (
         <div
-          key={question.id}
-          id={`question-${question.id}`}
+          key={q.id}
           className={`question-card ${
-            unansweredIds.includes(question.id) ? "question-error" : ""
+            unansweredIds.includes(q.id) ? "question-error" : ""
           }`}
         >
-          <h3>{index + 1}. {question.questionText}</h3>
+          <h3>{index + 1}. {q.questionText}</h3>
 
-          {question.options.map((option) => (
+          {q.options.map((option) => (
             <div key={option} style={{ marginTop: "10px" }}>
               <label>
                 <input
                   type="radio"
-                  name={`question-${question.id}`}
-                  value={option}
-                  checked={answers[question.id] === option}
-                  onChange={() => handleOptionChange(question.id, option)}
+                  name={`question-${q.id}`}
+                  checked={answers[q.id] === option}
+                  onChange={() => handleOptionChange(q.id, option)}
                 />
-                {" "}
-                {option}
+                {" "}{option}
               </label>
             </div>
           ))}
 
-          {unansweredIds.includes(question.id) && (
-            <p className="question-error-text">
-              Please select an answer
-            </p>
+          {unansweredIds.includes(q.id) && (
+            <p className="question-error-text">Please select an answer</p>
           )}
         </div>
       ))}
 
-      <button className="quiz-button" onClick={handleSubmit}>
-        Submit Quiz
+      <button
+        className="quiz-button"
+        onClick={handleSubmit}
+        disabled={submitting}
+      >
+        {submitting ? "Submitting..." : "Submit Quiz"}
       </button>
     </div>
   );
