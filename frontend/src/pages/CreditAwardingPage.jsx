@@ -70,8 +70,8 @@ export default function CreditAwardingPage() {
   }
 
   return (
-    <main className="mx-auto mt-6 max-w-6xl px-4 pb-10 text-slate-800 mt-[10vh] ">
-      <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg">
+    <main className="min-h-screen flex items-center justify-center px-4 text-slate-800">
+      <section className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg w-[60vw]">
         {/* Header */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>

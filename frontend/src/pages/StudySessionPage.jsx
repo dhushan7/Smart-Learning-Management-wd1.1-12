@@ -85,7 +85,7 @@ export default function StudySessionPage() {
   };
 
   return (
-    <main className="mx-auto mt-6 max-w-6xl px-4 pb-10 text-slate-800 mt-[10vh]">
+    <main className="min-h-screen flex items-center justify-center px-4 text-slate-800">
       <section className="rounded-2xl border border-sky-100 bg-white p-6 shadow-lg">
         {/* Header */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

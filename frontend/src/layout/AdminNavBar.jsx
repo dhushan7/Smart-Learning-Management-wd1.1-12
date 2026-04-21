@@ -93,7 +93,7 @@ export default function AdminNavBar() {
             <li><NavLink to="/admin/users" className={linkStyle}>Users</NavLink></li>
             <li><NavLink to="/admin/resources" className={linkStyle}>Resources</NavLink></li>
             <li><NavLink to="/admin/credits" className={linkStyle}>Credits</NavLink></li>
-            <li><NavLink to="/admin/reports" className={linkStyle}>Reports</NavLink></li>
+            {/* <li><NavLink to="/admin/reports" className={linkStyle}>Reports</NavLink></li> */}
           </>
         )}
 
