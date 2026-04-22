@@ -92,9 +92,9 @@ export default function Dashboard() {
                 <Link to="/admin/credits">
                   <DashboardCard title="Credits" icon={<TrophyIcon className="h-12 w-12 text-indigo-500" />} />
                 </Link>
-                <Link to="/admin/reports">
+                {/* <Link to="/admin/reports">
                   <DashboardCard title="Reports" icon={<DocumentChartBarIcon className="h-12 w-12 text-blue-500" />} />
-                </Link>
+                </Link> */}
               </>
             )}
 
