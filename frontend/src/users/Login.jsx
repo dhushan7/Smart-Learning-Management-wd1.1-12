@@ -4,6 +4,9 @@ import UserRegister from "./userRegister";
 import FloatingInput from "../component/FloatingInput";
 import { useNavigate } from "react-router-dom";
 
+// Import Google Login button component
+import { GoogleLogin } from "@react-oauth/google";
+
 export default function Login({ closeModal }) {
   const [formData, setFormData] = useState({
     username: "",
@@ -26,7 +29,7 @@ export default function Login({ closeModal }) {
     setSuccess("");
   };
 
-  // --- NEW: Helper function to auto-fill demo credentials ---
+  // Helper function to auto-fill demo credentials
   const fillDemoData = (demoUsername, demoPassword) => {
     setFormData({
       username: demoUsername,
@@ -36,6 +39,7 @@ export default function Login({ closeModal }) {
     setSuccess("");
   };
 
+  // Traditional Username/Password Form Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -70,16 +74,15 @@ export default function Login({ closeModal }) {
       }
 
       if (response.ok) {
-        // BUILD USER OBJECT
+        // Build coherent session structure containing issued JWT token
         const userData = {
           username: data.username || data.user?.username || formData.username,
           email: data.email || data.user?.email || "",
           role: data.role || "Student",
           profileImage: data.profileImage || null,
-          token: data.token || null,
+          token: data.token || null, // Contains backend generated JWT token
         };
 
-        // STORE USER
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("role", userData.role);
 
@@ -96,6 +99,59 @@ export default function Login({ closeModal }) {
       setError("Cannot connect to server. Check backend.");
     }
   };
+
+  // Google Authentication Response Handler
+  const handleGoogleSuccess = async (credentialResponse) => {
+  setError("");
+  setSuccess("");
+
+  try {
+    // 1. Decode the credential payload safely to read the email first
+    const base64Url = credentialResponse.credential.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(window.atob(base64));
+    
+    // 2. Validate against SLIIT domain pattern
+    const sliitEmailRegex = /^[iI][tT]\d{8}@my\.sliit\.lk$/;
+    if (!sliitEmailRegex.test(payload.email)) {
+      setError("Access Denied: Only official SLIIT student accounts are permitted.");
+      return; // Stop execution here
+    }
+
+    // 3. Proceed to backend verification if regex passes
+    const response = await fetch(`${BASE_URL}/user/google-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: credentialResponse.credential }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      const userData = {
+        username: data.username,
+        email: data.email,
+        role: data.role,
+        profileImage: data.profileImage || null,
+        token: data.token,
+      };
+
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("role", userData.role);
+      setSuccess("Google Sign-In successful! 🎉");
+
+      setTimeout(() => {
+        closeModal?.();
+        navigate("/dashboard");
+      }, 800);
+    } else {
+      setError(data.message || "Google authentication rejected by server.");
+    }
+  } catch (err) {
+    setError("Server connection dropped during Google authentication.");
+  }
+};
+  
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -154,6 +210,22 @@ export default function Login({ closeModal }) {
           </button>
         </form>
 
+        {/* Google Authentication Segment */}
+        <div className="flex flex-col items-center justify-center mt-5 pt-4 border-t border-white/20">
+          <p className="text-xs text-white/60 mb-3 uppercase tracking-wider">
+            Or Sign In With
+          </p>
+          <div className="w-full flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google Sign-In authentication failed.")}
+              theme="filled_blue"
+              shape="pill"
+              size="large"
+            />
+          </div>
+        </div>
+
         {/* links */}
         <div className="text-center mt-4 text-sm text-white/80 space-y-2">
           <p>
@@ -167,7 +239,7 @@ export default function Login({ closeModal }) {
           </p>
         </div>
 
-        {/* --- NEW: Demo Links Section --- */}
+        {/* Demo Links Section */}
         <div className="mt-6 pt-4 border-t border-white/20">
           <p className="text-xs text-center text-white/60 mb-3 uppercase tracking-wider">
             Demo Logins

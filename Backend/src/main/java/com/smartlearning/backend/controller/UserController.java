@@ -15,6 +15,12 @@ import com.smartlearning.backend.repository.OTPRepository;
 import com.smartlearning.backend.service.EmailService;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.smartlearning.backend.config.JwtTokenProvider;
+
 import java.time.LocalDateTime;
 
 import java.util.*;
@@ -203,6 +209,60 @@ public class UserController {
         return ResponseEntity.ok("Registration successful");
     }
 
+    @Autowired
+    private JwtTokenProvider tokenProvider;
+
+    private final String GOOGLE_CLIENT_ID = "google client id here...";
+
+    @PostMapping("/google-login")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
+        String idTokenString = request.get("token");
+        if (idTokenString == null) {
+            return ResponseEntity.badRequest().body("Token missing");
+        }
+
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken != null) {
+                GoogleIdToken.Payload payload = idToken.getPayload();
+
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+                
+                // Generate a reliable local base username using the email alias
+                String username = email.split("@")[0]; 
+
+                // Find or provision user automatically
+                User user = userRepository.findByEmail(email).orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setUsername(username);
+                    newUser.setRole("Student");
+                    newUser.setPassword(""); // OAuth users don't need local raw passwords
+                    return userRepository.save(newUser);
+                });
+
+                // Mint application specific JWT token
+                String jwtToken = tokenProvider.generateToken(user.getUsername(), user.getRole(), user.getEmail());
+
+                return ResponseEntity.ok(Map.of(
+                        "username", user.getUsername(),
+                        "email", user.getEmail(),
+                        "role", user.getRole(),
+                        "token", jwtToken
+                ));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google Token");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Auth Error: " + e.getMessage());
+        }
+    }
 
     // admin create users
     @PostMapping("/admin/create")

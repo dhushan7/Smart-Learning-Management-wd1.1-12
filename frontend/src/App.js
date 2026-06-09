@@ -19,6 +19,8 @@ import EditProfile from "./users/EditAdmProfile";
 import AdmReports from "./pages/AdminReports";
 import MyAttempts from "./pages/MyAttempts";
 
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import ResourceManagementPage from "./pages/ResourceManagementPage";
 import CreditAwardingPage from "./pages/CreditAwardingPage";
 import ReviewRatingPage from "./pages/ReviewRatingPage";
@@ -27,10 +29,14 @@ import AdminResourcePage from "./pages/AdminResourcePage";
 import AdminCreditPage from "./pages/AdminCreditPage";
 import AdminSessionPage from "./pages/AdminSessionPage";
 
+
+
 import Footer from "./layout/Footer";
 
 function App() {
+    const GOOGLE_CLIENT_ID = "google client id here...";
     return (
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
         <ToastProvider>
             <BrowserRouter>
                 <Navbar />
@@ -84,6 +90,7 @@ function App() {
                 <Footer />
             </BrowserRouter>
         </ToastProvider>
+        </GoogleOAuthProvider>
     );
 }
 

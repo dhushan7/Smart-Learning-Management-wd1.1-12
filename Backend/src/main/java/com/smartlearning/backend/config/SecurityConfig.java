@@ -34,6 +34,8 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // MAIN SECURITY (Spring Security 6 )
     @Bean
@@ -51,6 +53,7 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );
+                http.addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

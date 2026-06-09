@@ -90,7 +90,7 @@ export default function UserRegister({ closeModal, openLogin }) {
     setFormData({
       username: "madhushan.m21",
       name: "Minindu Madhushan",
-      email: "it23617414@my.sliit.lk",
+      email: "it12345678@my.sliit.lk",
       password: demoPassword,
       confirmPassword: demoPassword,
     });
