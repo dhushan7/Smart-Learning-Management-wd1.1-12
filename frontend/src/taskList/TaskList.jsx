@@ -23,8 +23,10 @@ export default function TaskList() {
   // trigger re-render for countdown
   const [, setTick] = useState(0);
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  // 🔥 Extracting user parameters alongside our session JWT token
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email;
+  const token = user?.token;
 
   const showToast = (message, type = "success") => {
     setToast(message);
@@ -38,33 +40,42 @@ export default function TaskList() {
     }, 2500);
   };
 
-  // FETCH DATA
+  // FETCH DATA WITH SECURE HEADERS
   const fetchAll = useCallback(async () => {
-    if (!email) return;
+    if (!email || !token) return;
 
     try {
-      const t = await fetch(`http://localhost:8086/tasks?email=${email}`).then(r => r.json());
-      const n = await fetch(`http://localhost:8086/tasks/notifications?email=${email}`).then(r => r.json());
+      const headersConfig = {
+        "Authorization": `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+        "Content-Type": "application/json"
+      };
+
+      const t = await fetch(`http://localhost:8086/tasks?email=${email}`, { headers: headersConfig }).then(r => r.json());
+      const n = await fetch(`http://localhost:8086/tasks/notifications?email=${email}`, { headers: headersConfig }).then(r => r.json());
 
       setTasks(Array.isArray(t) ? t : []);
       setNotifications(Array.isArray(n) ? n : []);
     } catch {
-      showToast("Failed to load data", "error");
+      showToast("Failed to load secure data", "error");
     }
-  }, [email]);
+  }, [email, token]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  // real-time WebSocket
+  // Real-time WebSockets with JWT Authentication Handshake
   useEffect(() => {
-    if (!email) return;
+    if (!email || !token) return;
 
     const socket = new SockJS("http://localhost:8086/ws");
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
+      // 🔥 Passing the JWT token inside the connect headers to bypass Spring Security WebSocket filters
+      connectHeaders: {
+        "Authorization": `Bearer ${token}`
+      }
     });
 
     client.onConnect = () => {
@@ -81,7 +92,7 @@ export default function TaskList() {
     client.activate();
 
     return () => client.deactivate();
-  }, [email]);
+  }, [email, token]);
 
   // countdown auto refresh
   useEffect(() => {
@@ -92,11 +103,14 @@ export default function TaskList() {
     return () => clearInterval(interval);
   }, []);
 
-  // TASK ACTIONS
+  // TASK ACTIONS (SECURED)
   const completeTask = async (id) => {
     try {
       await fetch(`http://localhost:8086/tasks/${id}/complete`, {
         method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+        }
       });
 
       setTasks(prev =>
@@ -106,7 +120,6 @@ export default function TaskList() {
       );
 
       fetchAll(); // refresh notifications
-
       showToast("Task completed 🎉", "complete");
     } catch {
       showToast("Failed to complete task", "error");
@@ -119,26 +132,31 @@ export default function TaskList() {
     try {
       await fetch(`http://localhost:8086/tasks/${deleteId}`, {
         method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+        }
       });
 
       setTasks(prev => prev.filter(t => t?.id !== deleteId));
       setDeleteId(null);
 
       fetchAll(); // refresh notifications
-
       showToast("Task deleted 🗑️", "delete");
     } catch {
       showToast("Delete failed", "error");
     }
   };
 
-  // NOTIFICATION ACTIONS
+  // NOTIFICATION ACTIONS (SECURED)
   const markAsRead = async (id, currentReadState) => {
     if (currentReadState) return;
 
     try {
       await fetch(`http://localhost:8086/tasks/${id}/readNotification`, {
         method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+        }
       });
 
       setNotifications(prev =>
@@ -147,7 +165,7 @@ export default function TaskList() {
         )
       );
     } catch (err) {
-      console.error("Failed to mark as read", err);
+      console.error("Failed to mark alert as read", err);
     }
   };
 
@@ -157,6 +175,9 @@ export default function TaskList() {
     try {
       await fetch(`http://localhost:8086/tasks/${notifDeleteId}/dismissNotification`, {
         method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+        }
       });
 
       setNotifications(prev =>
@@ -170,7 +191,7 @@ export default function TaskList() {
     }
   };
 
-  //Notification sound
+  // Notification sound
   const playNotificationSound = () => {
     const audio = new Audio("/sounds/notify.mp3");
     audio.play().catch(() => {});
@@ -308,7 +329,6 @@ export default function TaskList() {
               setShowAddModal(false);
 
               fetchAll(); // refresh notifications
-
               showToast(editTask ? "Task updated ✏️" : "Task added ✨", "success");
             }}
           />

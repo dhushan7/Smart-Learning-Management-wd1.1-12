@@ -27,7 +27,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/user")
-
+@CrossOrigin(origins = "http://localhost:3000")
 
 public class UserController {
 
@@ -293,31 +293,31 @@ public class UserController {
         String password = request.get("password");
 
         if (login == null || password == null) {
-            return ResponseEntity.badRequest()
-                    .body("Login and password required");
+            return ResponseEntity.badRequest().body("Login and password required");
         }
 
         Optional<User> existingUser = userRepository.findByLogin(login);
 
         if (existingUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("User not found");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
         }
 
         User dbUser = existingUser.get();
-//        if (!passwordEncoder.matches(password, dbUser.getPassword())) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body("Invalid password");
-//        }
+
+        // Validate password
         if (!password.equals(dbUser.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
         }
 
+        // 🔥 GENERATE JWT TOKEN HERE
+        String jwtToken = tokenProvider.generateToken(dbUser.getUsername(), dbUser.getRole(), dbUser.getEmail());
+
+        // Return token to the frontend session builder
         return ResponseEntity.ok(Map.of(
                 "username", dbUser.getUsername(),
                 "email", dbUser.getEmail(),
-                "role", dbUser.getRole()
+                "role", dbUser.getRole(),
+                "token", jwtToken
         ));
     }
 

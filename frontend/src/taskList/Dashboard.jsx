@@ -4,17 +4,30 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 export default function Dashboard() {
   const [stats, setStats] = useState({});
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  // 🔥 Secure Extraction: Pull user metrics alongside the active token from localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email;
+  const token = user?.token;
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    const email = user?.email;
+    // Check if both properties exist before reaching out to the server metrics endpoint
+    if (!email || !token) return;
 
-    fetch(`http://localhost:8086/tasks/stats?email=${email}`)
-      .then(res => res.json())
-      .then(setStats);
-  }, []);
+    fetch(`http://localhost:8086/tasks/stats?email=${email}`, {
+      method: "GET",
+      headers: {
+        // 🔑 Attaching the custom application JWT Bearer Header
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Dashboard metrics access unauthorized.");
+        return res.json();
+      })
+      .then(setStats)
+      .catch(err => console.error("Stats Fetch Error:", err));
+  }, [email, token]); // Adding email and token dependencies to safely monitor lifecycle updates
 
   const completed = stats.completed || 0;
   const pending = stats.pending || 0;

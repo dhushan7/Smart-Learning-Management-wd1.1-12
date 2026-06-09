@@ -7,46 +7,61 @@ export default function StudySessionPage() {
   const [backendStatus, setBackendStatus] = useState("Connecting...");
   const [viewMode, setViewMode] = useState("upcoming"); // "upcoming" | "all"
   
-  // 1. Add a state to hold the dynamically fetched user
+  // States to track active user information and verification signature strings
   const [currentUser, setCurrentUser] = useState(null);
+  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
 
-  // 2. Fetch the current user when the component mounts
+  // Fetch the current user and signature token when the component mounts
   useEffect(() => {
-    // Retrieving the user object saved by the Login component
     const storedUser = localStorage.getItem("user"); 
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser.username); 
+        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
     }
   }, []);
 
+  // SECURED GENERAL SESSIONS LOAD
   const loadSessions = useCallback(async () => {
+    if (!userToken) return;
     try {
       const endpoint = viewMode === "upcoming"
         ? `${API_BASE}/sessions/upcoming`
         : `${API_BASE}/sessions`;
-      const res = await fetch(endpoint);
+        
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+          "Content-Type": "application/json"
+        }
+      });
       if (!res.ok) throw new Error();
       setSessions(await res.json());
       setBackendStatus("Online: API connected");
     } catch { setBackendStatus("Offline: backend unavailable"); }
-  }, [viewMode]);
+  }, [viewMode, userToken]); // Added userToken as dependency to monitor lifecycle updates safely
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
+  // SECURED JOIN INTERACTION
   async function handleJoin(sessionId) {
-    if (!currentUser) {
+    if (!currentUser || !userToken) {
       alert("Please log in to join a session.");
       return;
     }
 
     try {
-      // 3. Use the dynamic currentUser here
-      const res = await fetch(`${API_BASE}/sessions/${sessionId}/join?userId=${currentUser}`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/join?userId=${currentUser}`, { 
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+        }
+      });
       if (res.ok) { 
         const updated = await res.json(); 
         setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); 
@@ -54,12 +69,17 @@ export default function StudySessionPage() {
     } catch { /* offline */ }
   }
 
+  // SECURED LEAVE INTERACTION
   async function handleLeave(sessionId) {
-    if (!currentUser) return;
+    if (!currentUser || !userToken) return;
 
     try {
-      // 3. Use the dynamic currentUser here
-      const res = await fetch(`${API_BASE}/sessions/${sessionId}/leave?userId=${currentUser}`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/sessions/${sessionId}/leave?userId=${currentUser}`, { 
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+        }
+      });
       if (res.ok) { 
         const updated = await res.json(); 
         setSessions(prev => prev.map(s => s.id === updated.id ? updated : s)); 
@@ -69,7 +89,6 @@ export default function StudySessionPage() {
 
   function isJoined(session) {
     if (!session.attendees || !currentUser) return false;
-    // 3. Use the dynamic currentUser here
     return session.attendees.split(",").includes(currentUser);
   }
 

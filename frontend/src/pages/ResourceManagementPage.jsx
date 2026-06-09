@@ -18,6 +18,7 @@ function inputCls(hasError) {
 
 export default function ResourceManagementPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
   const [resources, setResources] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
   const [form, setForm] = useState({ title: "", category: "", description: "", file: null });
@@ -29,14 +30,14 @@ export default function ResourceManagementPage() {
   const [progressMap, setProgressMap] = useState({});
   const [favourites, setFavourites] = useState(new Set());
 
-  // 1. Retrieve the real user from Local Storage on mount
+  // 1. Retrieve the real user and token from Local Storage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        // Assuming your user object has a username property based on your Login component
         setCurrentUser(parsedUser.username); 
+        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
@@ -44,18 +45,27 @@ export default function ResourceManagementPage() {
   }, []);
 
   const loadAll = useCallback(async () => {
-    // Load general resources regardless of auth status
+    // Load general resources safely 
     try {
-      const res = await fetch(`${API_BASE}/resources?status=APPROVED`);
+      const res = await fetch(`${API_BASE}/resources?status=APPROVED`, {
+        headers: {
+          "Authorization": `Bearer ${userToken}`
+        }
+      });
       if (!res.ok) throw new Error();
       setResources(await res.json());
       setBackendStatus("Online: API connected");
     } catch { setBackendStatus("Offline: backend unavailable"); }
 
-    // If we have a logged-in user, fetch their specific progress and favourites
-    if (currentUser) {
+    // If we have an authorized user session, query protected tracking metrics
+    if (currentUser && userToken) {
+      const secureHeaders = {
+        "Authorization": `Bearer ${userToken}`, // 🔑 Passing token
+        "Content-Type": "application/json"
+      };
+
       try {
-        const prog = await fetch(`${API_BASE}/progress/${currentUser}`);
+        const prog = await fetch(`${API_BASE}/progress/${currentUser}`, { headers: secureHeaders });
         if (prog.ok) {
           const data = await prog.json();
           const map = {};
@@ -65,14 +75,14 @@ export default function ResourceManagementPage() {
       } catch { /* ignore */ }
 
       try {
-        const fav = await fetch(`${API_BASE}/favourites/${currentUser}`);
+        const fav = await fetch(`${API_BASE}/favourites/${currentUser}`, { headers: secureHeaders });
         if (fav.ok) {
           const data = await fav.json();
           setFavourites(new Set(data.map(f => f.resourceId)));
         }
       } catch { /* ignore */ }
     }
-  }, [currentUser]); // Added currentUser as dependency
+  }, [currentUser, userToken]); // Added userToken as dependency
 
   useEffect(() => { 
     loadAll(); 
@@ -97,7 +107,6 @@ export default function ResourceManagementPage() {
     } else {
       setForm(p => ({ ...p, [name]: value }));
     }
-    // clear error on change
     if (formErrors[name]) setFormErrors(p => { const n = { ...p }; delete n[name]; return n; });
   }
 
@@ -129,9 +138,10 @@ export default function ResourceManagementPage() {
     return Object.keys(e).length === 0;
   }
 
+  // MULTIPART SECURED FILE UPLOAD
   async function handleUpload(e) {
     e.preventDefault();
-    if (!currentUser) {
+    if (!currentUser || !userToken) {
       alert("You must be logged in to upload resources.");
       return;
     }
@@ -145,9 +155,15 @@ export default function ResourceManagementPage() {
       fd.append("category", category.trim());
       fd.append("description", description.trim()); 
       fd.append("file", file);
-      fd.append("uploadedBy", currentUser); // Using dynamic user
+      fd.append("uploadedBy", currentUser);
 
-      const res = await fetch(`${API_BASE}/resources/upload`, { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/resources/upload`, { 
+        method: "POST", 
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Token injected into FormData mutation stream
+        },
+        body: fd 
+      });
       if (!res.ok) throw new Error();
       const saved = await res.json();
       setResources(prev => [saved, ...prev]);
@@ -158,41 +174,59 @@ export default function ResourceManagementPage() {
     finally { setUploading(false); }
   }
 
+  // SECURED DATA DELETION
   async function handleDelete(id) {
     if (!window.confirm("Delete this resource permanently?")) return;
     try {
-      const res = await fetch(`${API_BASE}/resources/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/resources/${id}`, { 
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT
+        }
+      });
       if (!res.ok && res.status !== 204) throw new Error();
       setResources(prev => prev.filter(r => r.id !== id));
     } catch { alert("Delete failed."); }
   }
 
   async function handleApprove(id) {
-    const res = await fetch(`${API_BASE}/resources/${id}/approve`, { method: "PUT" });
+    const res = await fetch(`${API_BASE}/resources/${id}/approve`, { 
+      method: "PUT",
+      headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+    });
     if (res.ok) setResources(prev => prev.map(r => r.id === id ? { ...r, status: "APPROVED" } : r));
   }
 
   async function handleReject(id) {
-    const res = await fetch(`${API_BASE}/resources/${id}/reject`, { method: "PUT" });
+    const res = await fetch(`${API_BASE}/resources/${id}/reject`, { 
+      method: "PUT",
+      headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+    });
     if (res.ok) setResources(prev => prev.map(r => r.id === id ? { ...r, status: "REJECTED" } : r));
   }
 
+  // SECURED PROGRESS TRANSACTION
   async function updateProgress(resourceId, patch) {
-    if (!currentUser) return; // Prevent updates if not logged in
+    if (!currentUser || !userToken) return;
 
     const current = progressMap[resourceId] || { opened: false, completed: false, progressPercent: 0 };
     const next = { ...current, ...patch, userId: currentUser, resourceId };
     setProgressMap(prev => ({ ...prev, [resourceId]: next }));
     try {
       await fetch(`${API_BASE}/progress`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", 
+        headers: { 
+          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify(next),
       });
     } catch { /* keep local update */ }
   }
 
+  // SECURED FAVOURITES TRANSACTION
   async function toggleFavourite(resourceId) {
-    if (!currentUser) {
+    if (!currentUser || !userToken) {
       alert("Please log in to save favourites.");
       return;
     }
@@ -203,10 +237,17 @@ export default function ResourceManagementPage() {
     setFavourites(next);
     try {
       if (isFav) {
-        await fetch(`${API_BASE}/favourites?userId=${currentUser}&resourceId=${resourceId}`, { method: "DELETE" });
+        await fetch(`${API_BASE}/favourites?userId=${currentUser}&resourceId=${resourceId}`, { 
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+        });
       } else {
         await fetch(`${API_BASE}/favourites`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", 
+          headers: { 
+            "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT
+            "Content-Type": "application/json" 
+          },
           body: JSON.stringify({ userId: currentUser, resourceId }),
         });
       }
@@ -229,7 +270,7 @@ export default function ResourceManagementPage() {
           <p className="rounded-md bg-cyan-50 px-3 py-1 text-xs text-cyan-800">{backendStatus}</p>
         </div>
 
-        {/* Upload Form (Disabled visually if no user) */}
+        {/* Upload Form */}
         <details className="mb-5 rounded-xl border border-cyan-100 bg-cyan-50">
           <summary className="cursor-pointer rounded-xl px-4 py-3 text-sm font-semibold text-cyan-800 hover:bg-cyan-100 select-none">
             ＋ Upload New Resource
@@ -373,7 +414,7 @@ export default function ResourceManagementPage() {
                   </div>
                 </div>
 
-                {/* File links */}
+                {/* File links (Protected Downloads) */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {resource.fileUrl?.toLowerCase().endsWith(".pdf") && (
                     <a href={`${API_BASE}/resources/file/view/${encodeURIComponent(resource.fileUrl)}`} target="_blank" rel="noreferrer"

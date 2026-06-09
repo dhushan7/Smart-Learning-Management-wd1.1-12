@@ -40,20 +40,36 @@ public class SecurityConfig {
     // MAIN SECURITY (Spring Security 6 )
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
+
+                        // allow preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/user/login", "/user", "/user/send-otp", "/user/verify-otp-register").permitAll()
-                        .anyRequest().permitAll() // (dev mode)
+
+                        // public endpoints
+                        .requestMatchers("/user/login",
+                                "/user/send-otp",
+                                "/user/verify-otp-register",
+                                "/user/google-login",
+                                "/user/check-username/**",
+                                "/user/check-email/**"
+                        ).permitAll()
+
+                        .requestMatchers("/user/**").authenticated()
+
+                        .anyRequest().authenticated()
                 )
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 );
-                http.addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+
+        http.addFilterBefore(jwtAuthenticationFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

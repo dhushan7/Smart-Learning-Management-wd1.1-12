@@ -17,6 +17,11 @@ function QuizAttempt() {
   const [unansweredIds, setUnansweredIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // 🔥 Secure Extraction: Parse user data safely to extract the email and active JWT token
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const email = storedUser?.email;
+  const token = storedUser?.token; // 🔑 Extracting backend-issued JWT token
+
   if (!quiz) {
     return <div className="page-container">Quiz not found.</div>;
   }
@@ -53,14 +58,19 @@ function QuizAttempt() {
     const total = quiz.questions.length;
     const percentage = (score / total) * 100;
 
-    const email = localStorage.getItem("email") || "guest@gmail.com";
+    // Guard Clause: Block request submission if the student session is unauthorized
+    if (!email || !token) {
+      setErrorMessage("Your session has expired. Please log in again to save your score.");
+      return;
+    }
 
     setSubmitting(true);
 
     try {
-      await fetch("http://localhost:8086/api/quiz-attempts", {
+      const response = await fetch("http://localhost:8086/api/quiz-attempts", {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -72,6 +82,11 @@ function QuizAttempt() {
           percentage,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error("Server rejected quiz result registration.");
+      }
+
     } catch (err) {
       console.error("Error saving attempt:", err);
     } finally {
@@ -143,5 +158,3 @@ function QuizAttempt() {
 }
 
 export default QuizAttempt;
-
-// TESTING

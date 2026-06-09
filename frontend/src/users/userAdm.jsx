@@ -4,7 +4,7 @@ import axios from "axios";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Swal from "sweetalert2";
 
-// Floating Input (LIGHT THEME ONLY UPDATED)
+// Floating Input Component
 const FloatingLabelInput = ({
   name,
   type = "text",
@@ -55,17 +55,37 @@ export default function UserAdm() {
   const role = localStorage.getItem("role");
   const navigate = useNavigate();
 
+  // ✅ FIX: consistent token extraction
+  const getToken = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("user"));
+      return stored?.token || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const authHeaders = {
+    Authorization: `Bearer ${getToken()}`,
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
+  // GET USERS
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(BASE_URL);
-      let fetchedUsers = res.data;
+      const res = await axios.get(BASE_URL, {
+        headers: authHeaders,
+      });
 
-      if (role === "Academic Panel") {
-        fetchedUsers = fetchedUsers.filter((u) => u.role === "Student");
+      let fetchedUsers = res.data || [];
+
+      if (role?.toLowerCase() === "academic panel") {
+        fetchedUsers = fetchedUsers.filter(
+          (u) => u.role?.toLowerCase() === "student"
+        );
       }
 
       setUsers(fetchedUsers);
@@ -74,15 +94,18 @@ export default function UserAdm() {
     } catch (err) {
       console.error(err);
       setLoading(false);
+      Swal.fire("Error", "Failed to load users", "error");
     }
   };
 
+  // SEARCH FILTER
   useEffect(() => {
     const filtered = users.filter((u) =>
       (u.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (u.email || "").toLowerCase().includes(search.toLowerCase()) ||
       (u.username || "").toLowerCase().includes(search.toLowerCase())
     );
+
     setFilteredUsers(filtered);
     setCurrentPage(1);
   }, [search, users]);
@@ -94,15 +117,10 @@ export default function UserAdm() {
       icon: "success",
       timer: 1600,
       showConfirmButton: false,
-      background: "#ffffff",
-      customClass: {
-        popup: "rounded-2xl border shadow-lg",
-        title: "text-gray-800 font-semibold",
-        htmlContainer: "text-gray-600",
-      },
     });
   };
 
+  // DELETE USER
   const deleteUser = async (id) => {
     if (role !== "Admin") {
       Swal.fire("Access Denied", "Only Admin can delete users", "error");
@@ -110,9 +128,8 @@ export default function UserAdm() {
     }
 
     const user = users.find((u) => u.id === id);
-
     if (!user?.email) {
-      Swal.fire("Error", "Email not found for this user", "error");
+      Swal.fire("Error", "User email missing", "error");
       return;
     }
 
@@ -122,8 +139,6 @@ export default function UserAdm() {
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-      background: "#ffffff",
     });
 
     if (!result.isConfirmed) return;
@@ -131,54 +146,57 @@ export default function UserAdm() {
     try {
       await axios.delete(`${BASE_URL}/delete`, {
         params: { email: user.email },
+        headers: authHeaders,
       });
 
-      showSuccess("Deleted!", "User has been removed successfully");
+      showSuccess("Deleted!", "User removed successfully");
       fetchUsers();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to delete user", "error");
+      Swal.fire("Error", "Delete failed", "error");
     }
   };
 
+  // UPDATE USER
   const updateUser = async () => {
     if (role !== "Admin") {
       Swal.fire("Access Denied", "Only Admin can update users", "error");
       return;
     }
 
-    if (editingUser.role === "Student") {
-      Swal.fire("Not Allowed", "Admin cannot update student details", "warning");
-      return;
-    }
-
     const result = await Swal.fire({
       title: "Save changes?",
-      text: "Do you want to update this user?",
       icon: "question",
       showCancelButton: true,
       confirmButtonText: "Yes, update",
-      cancelButtonText: "Cancel",
-      background: "#ffffff",
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      await axios.put(`${BASE_URL}/${editingUser.id}`, editingUser);
+      await axios.put(`${BASE_URL}/${editingUser.id}`, editingUser, {
+        headers: authHeaders,
+      });
+
       setEditingUser(null);
-      showSuccess("Updated!", "User details updated successfully");
+      showSuccess("Updated!", "User updated successfully");
       fetchUsers();
     } catch (err) {
       console.error(err);
-      Swal.fire("Error", "Failed to update user", "error");
+      Swal.fire("Error", "Update failed", "error");
     }
   };
 
-  const indexOfLast = currentPage * usersPerPage;
-  const indexOfFirst = indexOfLast - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  // PAGINATION SAFE FIX
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / usersPerPage)
+  );
+
+  const currentUsers = filteredUsers.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage
+  );
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -215,19 +233,19 @@ export default function UserAdm() {
             placeholder="Search users..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-800 w-80 focus:ring-2 focus:ring-indigo-400"
+            className="px-4 py-2 rounded-lg border w-80"
           />
         </div>
       </div>
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p>Loading...</p>
       ) : (
         <>
           {/* TABLE */}
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden border">
             <table className="w-full text-left">
-              <thead className="bg-gray-100 text-gray-600">
+              <thead className="bg-gray-100">
                 <tr>
                   <th className="p-4">ID</th>
                   <th>Name</th>
@@ -240,10 +258,7 @@ export default function UserAdm() {
 
               <tbody>
                 {currentUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-t hover:bg-gray-50 transition"
-                  >
+                  <tr key={user.id} className="border-t hover:bg-gray-50">
                     <td className="p-4">{user.id}</td>
                     <td>{user.name}</td>
                     <td>{user.email}</td>
@@ -256,22 +271,22 @@ export default function UserAdm() {
                     </td>
 
                     <td className="flex gap-2 p-2">
-                      {role === "Admin" && user.role !== "Student" && (
-                        <button
-                          onClick={() => setEditingUser(user)}
-                          className="px-3 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 text-sm"
-                        >
-                          Edit
-                        </button>
-                      )}
-
                       {role === "Admin" && (
-                        <button
-                          onClick={() => deleteUser(user.id)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-                        >
-                          Delete
-                        </button>
+                        <>
+                          <button
+                            onClick={() => setEditingUser(user)}
+                            className="px-3 py-1 bg-indigo-500 text-white rounded-lg"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => deleteUser(user.id)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-lg"
+                          >
+                            Delete
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -289,7 +304,7 @@ export default function UserAdm() {
                 className={`px-3 py-1 rounded-lg border ${
                   currentPage === i + 1
                     ? "bg-indigo-600 text-white"
-                    : "bg-white hover:bg-gray-100 text-gray-700"
+                    : "bg-white"
                 }`}
               >
                 {i + 1}
@@ -301,60 +316,58 @@ export default function UserAdm() {
 
       {/* MODAL */}
       {editingUser && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm z-50">
-          <div className="w-[520px] p-8 rounded-2xl bg-white border shadow-xl">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/20 z-50">
+          <div className="relative w-[520px] p-8 bg-white rounded-2xl shadow-xl">
 
             <button
               onClick={() => setEditingUser(null)}
-              className="absolute top-3 right-3 text-gray-600 hover:text-red-500"
+              className="absolute top-4 right-4 text-gray-400"
             >
               <XMarkIcon className="w-6 h-6" />
             </button>
 
-            <h2 className="text-xl font-bold mb-6 text-center text-gray-800">
+            <h2 className="text-xl font-bold mb-6 text-center">
               Edit User
             </h2>
 
-            <div className="space-y-4">
-              <FloatingLabelInput
-                name="name"
-                label="Name"
-                value={editingUser.name}
-                onChange={(e) =>
-                  setEditingUser({ ...editingUser, name: e.target.value })
-                }
-              />
+            <FloatingLabelInput
+              name="name"
+              label="Name"
+              value={editingUser.name || ""}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, name: e.target.value })
+              }
+            />
 
-              <FloatingLabelInput
-                name="email"
-                label="Email"
-                value={editingUser.email}
-                onChange={(e) =>
-                  setEditingUser({ ...editingUser, email: e.target.value })
-                }
-              />
+            <FloatingLabelInput
+              name="email"
+              label="Email"
+              value={editingUser.email || ""}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, email: e.target.value })
+              }
+            />
 
-              <FloatingLabelInput
-                name="username"
-                label="Username"
-                value={editingUser.username}
-                onChange={(e) =>
-                  setEditingUser({ ...editingUser, username: e.target.value })
-                }
-              />
-            </div>
+            <FloatingLabelInput
+              name="username"
+              label="Username"
+              value={editingUser.username || ""}
+              onChange={(e) =>
+                setEditingUser({ ...editingUser, username: e.target.value })
+              }
+            />
 
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={updateUser}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
               >
                 Save
               </button>
 
               <button
                 onClick={() => setEditingUser(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg"
+                className="px-4 py-2 bg-gray-200"
               >
                 Cancel
               </button>

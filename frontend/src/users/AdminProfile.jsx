@@ -14,12 +14,18 @@ export default function AdminProfile() {
     const raw = localStorage.getItem("user");
     const stored = raw ? JSON.parse(raw) : null;
 
-    if (!stored?.email) return;
+    // 🔥 Secure Extraction: Require valid email and security signature token
+    if (!stored?.email || !stored?.token) return;
 
     axios
-      .get(`http://localhost:8086/user/profile?email=${stored.email}`)
+      .get(`http://localhost:8086/user/profile?email=${stored.email}`, {
+        headers: {
+          Authorization: `Bearer ${stored.token}`, // 🔑 Attaching JWT Bearer Token
+          "Content-Type": "application/json",
+        },
+      })
       .then((res) => setUser(res.data))
-      .catch((err) => console.log(err));
+      .catch((err) => console.log("Admin Profile Fetch Error:", err));
   };
 
   if (!user) {
@@ -59,7 +65,6 @@ export default function AdminProfile() {
           </p>
         </div>
 
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
           {/* LEFT PROFILE CARD */}
@@ -85,7 +90,6 @@ export default function AdminProfile() {
             </span>
 
             <div className="w-full mt-6 space-y-3">
-
               {isAdminOrAcademic && (
                 <button
                   onClick={() => navigate("/admin/edit-profile")}
@@ -105,7 +109,6 @@ export default function AdminProfile() {
               >
                 Logout
               </button>
-
             </div>
           </div>
 
@@ -148,7 +151,6 @@ export default function AdminProfile() {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-
                 {[
                   {
                     value: 128,
@@ -171,8 +173,8 @@ export default function AdminProfile() {
                     <p className="text-sm opacity-80">{stat.label}</p>
                   </div>
                 ))}
-
               </div>
+
             </div>
 
           </div>

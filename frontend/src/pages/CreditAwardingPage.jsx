@@ -4,17 +4,19 @@ const API_BASE = "http://localhost:8086/api";
 
 export default function CreditAwardingPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
   const [totalCredits, setTotalCredits] = useState(0);
   const [history, setHistory] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
 
-  // 1. Retrieve the real user from Local Storage on mount
+  // 1. Retrieve the real user and token from Local Storage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser.username); 
+        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
@@ -24,14 +26,21 @@ export default function CreditAwardingPage() {
   }, []);
 
   const loadData = useCallback(async () => {
-    // Only fetch if we have a logged-in user
-    if (!currentUser) return;
+    // Only fetch if we have both a logged-in user and an active session token
+    if (!currentUser || !userToken) return;
 
     try {
+      const secureHeaders = {
+        "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+        "Content-Type": "application/json"
+      };
+
+      // Both historical queries run concurrently, signed with the authorization signature
       const [credRes, histRes] = await Promise.all([
-        fetch(`${API_BASE}/credits/student/${currentUser}`),
-        fetch(`${API_BASE}/credits/history/${currentUser}`),
+        fetch(`${API_BASE}/credits/student/${currentUser}`, { headers: secureHeaders }),
+        fetch(`${API_BASE}/credits/history/${currentUser}`, { headers: secureHeaders }),
       ]);
+
       if (credRes.ok) { 
         const d = await credRes.json(); 
         setTotalCredits(d.totalCredits ?? 0); 
@@ -43,7 +52,7 @@ export default function CreditAwardingPage() {
     } catch { 
       setBackendStatus("Offline: backend unavailable"); 
     }
-  }, [currentUser]); // Added currentUser as dependency
+  }, [currentUser, userToken]); // Added userToken as dependency to watch lifecycle accurately
 
   useEffect(() => { 
     loadData(); 

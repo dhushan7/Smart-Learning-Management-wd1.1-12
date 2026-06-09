@@ -42,20 +42,39 @@ export default function AdminCreditPage() {
   const [editingTx, setEditingTx] = useState(null);
   const [editErrors, setEditErrors] = useState({});
 
-  // 1. Robust dynamic user fetching
+  // --- TOKEN VERIFICATION ---
+  const [adminToken, setAdminToken] = useState(null); // 🔥 Track active admin JWT token string
+
+  // 1. Load Admin Token and Fetch Users dynamically on mount
   useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    let tokenString = null;
+
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        tokenString = parsedUser.token;
+        setAdminToken(tokenString); // 🔥 Bind token to react state context
+      } catch (err) {
+        console.error("Failed to parse admin session token data", err);
+      }
+    }
+
     const fetchUsers = async () => {
       try {
-        const res = await fetch(USER_API);
+        const headersConfig = tokenString ? { "Authorization": `Bearer ${tokenString}` } : {};
+        
+        // Secure query to load user collection mapping context
+        const res = await fetch(USER_API, {
+          method: "GET",
+          headers: headersConfig
+        });
         
         if (!res.ok) {
           throw new Error(`Server responded with status: ${res.status}`);
         }
 
         const data = await res.json();
-        
-        // Safety Check: Ensure we are working with an array
-        // (Spring Boot sometimes wraps responses in "content" or "data" objects)
         const userArray = Array.isArray(data) ? data : (data.content || data.data || []);
 
         // Filter out only the students
@@ -63,7 +82,6 @@ export default function AdminCreditPage() {
         setUsers(studentsOnly);
 
         if (studentsOnly.length > 0) {
-          // Default to the first student in the list
           const firstStudent = studentsOnly[0].username || studentsOnly[0].email;
           setSelectedStudent(firstStudent);
           setAwardForm((p) => ({ ...p, studentId: firstStudent }));
@@ -85,18 +103,23 @@ export default function AdminCreditPage() {
     fetchUsers();
   }, []);
 
-  // 2. Load credits + history dynamically when the selected student changes
+  // 2. Load credits + history dynamically with Secure JWT Headers
   const loadStudentData = useCallback(async (studentId) => {
-    if (!studentId) {
+    if (!studentId || !adminToken) {
       setTotalCredits(null);
       setHistory([]);
       return;
     }
     
     try {
+      const secureHeaders = {
+        "Authorization": `Bearer ${adminToken}`, // 🔑 Attaching JWT Bearer Header
+        "Content-Type": "application/json"
+      };
+
       const [credRes, histRes] = await Promise.all([
-        fetch(`${API_BASE}/credits/student/${studentId}`),
-        fetch(`${API_BASE}/credits/history/${studentId}`),
+        fetch(`${API_BASE}/credits/student/${studentId}`, { headers: secureHeaders }),
+        fetch(`${API_BASE}/credits/history/${studentId}`, { headers: secureHeaders }),
       ]);
       
       if (credRes.ok) { 
@@ -107,13 +130,12 @@ export default function AdminCreditPage() {
         setHistory(await histRes.json());
       }
       
-      // If we successfully fetched student data, the backend is definitively online
       setBackendStatus("Online");
     } catch (err) {
       console.error(`Failed to load data for student ${studentId}`, err);
       setBackendStatus("Offline: API Unavailable"); 
     }
-  }, []);
+  }, [adminToken]);
 
   useEffect(() => { 
     if (selectedStudent) {
@@ -121,7 +143,6 @@ export default function AdminCreditPage() {
     }
   }, [selectedStudent, loadStudentData]);
 
-  // Extract the unique identifiers for the dropdown options dynamically
   const studentOptions = users.length > 0
     ? users.map((u) => u.username || u.email || `User #${u.id}`)
     : [];
@@ -172,8 +193,10 @@ export default function AdminCreditPage() {
     return Object.keys(e).length === 0;
   }
 
+  // SECURED CREDIT AWARD ACTION
   async function handleAward(e) {
     e.preventDefault();
+    if (!adminToken) return;
     if (!validateAward()) return;
     
     const activity = awardForm.activity === "Custom Activity"
@@ -186,7 +209,10 @@ export default function AdminCreditPage() {
     try {
       const res = await fetch(`${API_BASE}/credits/award`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ studentId: awardForm.studentId, activity, credits }),
       });
       
@@ -208,21 +234,32 @@ export default function AdminCreditPage() {
     }
   }
 
+  // SECURED TRANSACTION DELETION
   async function handleDeleteTx(tx) {
-    if (!window.confirm(`Delete "${tx.activity}" (+${tx.credits} credits)?`)) return;
+    if (!adminToken || !window.confirm(`Delete "${tx.activity}" (+${tx.credits} credits)?`)) return;
     try {
-      await fetch(`${API_BASE}/credits/transaction/${tx.id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/credits/transaction/${tx.id}`, { 
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${adminToken}` // 🔑 Passing JWT here
+        }
+      });
+      if (!res.ok) throw new Error();
       await loadStudentData(selectedStudent);
     } catch { alert("Delete failed."); }
   }
 
+  // SECURED TRANSACTION MUTATION
   async function handleEditSave() {
-    if (!validateEditTx()) return;
+    if (!adminToken || !validateEditTx()) return;
     const credits = parseInt(editingTx.credits, 10);
     try {
       const res = await fetch(`${API_BASE}/credits/transaction/${editingTx.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ activity: editingTx.activity.trim(), credits }),
       });
       if (!res.ok) throw new Error();

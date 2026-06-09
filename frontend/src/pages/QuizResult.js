@@ -31,7 +31,7 @@ function QuizResult() {
     color = "#dc2626";
   }
 
-  // 2. ONE unified hook to handle the user check and the API call
+  // 2. ONE unified hook to handle the user check, token validation, and the API call
   useEffect(() => {
     const giveCredits = async () => {
       // Stop immediately if there's no result OR if we already started the process
@@ -42,6 +42,7 @@ function QuizResult() {
       // Lock the gate IMMEDIATELY so StrictMode doesn't fire twice
       hasAwarded.current = true;
 
+      // 🔥 Secure Extraction: Read the full user object to obtain both username and JWT token
       const storedUser = localStorage.getItem("user");
       if (!storedUser) {
         console.warn("DEBUG: Could not award credits. No user found in localStorage.");
@@ -51,19 +52,26 @@ function QuizResult() {
       try {
         const parsedUser = JSON.parse(storedUser);
         const username = parsedUser.username;
+        const token = parsedUser.token; // 🔑 Extracting backend-issued JWT token
+
+        if (!token) {
+          console.warn("DEBUG: Could not award credits. Missing authentication token signature.");
+          return;
+        }
 
         console.log(`DEBUG: Sending +2 credits to backend for studentId: ${username}...`);
 
         const response = await fetch(`${API_BASE}/credits/award`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            // 🔑 Injecting token inside the Authorization Bearer block
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json" 
+          },
           body: JSON.stringify({
-            studentId: username, // <--- FIXED: Matches your Java backend perfectly
+            studentId: username, // Matches Java backend parameter context
             activity: `Completed Quiz: ${result.title}`,
             credits: 2, 
-            // We leave this as AUTO_DOWNLOAD for now because we know your backend accepts it.
-            // If you want to change it to "AUTO_QUIZ" later, make sure to add "AUTO_QUIZ" 
-            // to your Java backend Enum first!
             type: "AUTO_DOWNLOAD" 
           }),
         });

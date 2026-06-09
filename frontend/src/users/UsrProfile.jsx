@@ -14,17 +14,22 @@ export default function UsrProfile() {
   const [deleteReason, setDeleteReason] = useState("");
   const [confirmText, setConfirmText] = useState("");
 
-
   useEffect(() => {
     const raw = localStorage.getItem("user");
     const stored = raw ? JSON.parse(raw) : null;
 
-    if (!stored?.email) return;
+    // 🔥 Secure Extraction: Pull both email and token from storage
+    if (!stored?.email || !stored?.token) return;
 
     axios
-      .get(`http://localhost:8086/user/profile?email=${stored.email}`)
+      .get(`http://localhost:8086/user/profile?email=${stored.email}`, {
+        headers: {
+          Authorization: `Bearer ${stored.token}`, // 🔑 Attaching JWT Bearer Token
+          "Content-Type": "application/json",
+        },
+      })
       .then((res) => setUser(res.data))
-      .catch((err) => console.log(err));
+      .catch((err) => console.log("Profile Fetch Error:", err));
   }, []);
 
   if (!user) {
@@ -48,22 +53,19 @@ export default function UsrProfile() {
         {/* EDIT MODAL */}
         {showEditProfile && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
-
             {/* BACKDROP */}
             <div
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setShowEditProfile(false)}
             />
-
             {/* MODAL */}
             <div className="relative z-50">
               <EditProfile closeModal={() => setShowEditProfile(false)} />
             </div>
-
           </div>
         )}
 
-        {/* ✅ NEW: DELETE MODAL */}
+        {/* ✅ DELETE MODAL WITH SECURE JWT HEADERS */}
         {showDeleteModal && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
 
@@ -128,9 +130,13 @@ export default function UsrProfile() {
                         const raw = localStorage.getItem("user");
                         const stored = raw ? JSON.parse(raw) : null;
 
+                        // 🔥 Securing Account Deletion Endpoint with JWT Headers
                         await axios.delete(
                           `http://localhost:8086/user/delete?email=${stored.email}`,
                           {
+                            headers: {
+                              Authorization: `Bearer ${stored.token}`, // 🔑 Passing JWT here
+                            },
                             data: { reason: deleteReason },
                           }
                         );
@@ -191,7 +197,6 @@ export default function UsrProfile() {
 
         {/* INFO */}
         <div className="w-full max-w-md space-y-3 text-sm">
-
           <div className="flex justify-between bg-white/20 p-3 rounded-xl backdrop-blur-md border border-white/30">
             <span className="font-semibold">Username</span>
             <span>{user.username}</span>
@@ -206,12 +211,10 @@ export default function UsrProfile() {
             <span className="font-semibold">Role</span>
             <span>{user.role}</span>
           </div>
-
         </div>
 
         {/* BUTTONS */}
         <div className="w-full max-w-md space-y-3">
-
           <button
             onClick={() => setShowEditProfile(true)}
             className="w-full bg-white/30 backdrop-blur-md border border-white/40 text-gray-800 py-2 rounded-xl shadow-md hover:scale-105 transition"
@@ -241,8 +244,6 @@ export default function UsrProfile() {
           >
             Delete Profile
           </button>
-
-
         </div>
 
       </div>

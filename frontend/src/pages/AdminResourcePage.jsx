@@ -5,11 +5,13 @@ const ALLOWED_FILE_TYPES = ["pdf", "doc", "docx", "ppt", "pptx", "txt", "zip"];
 const MAX_UPLOAD_MB = 25;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 
+// ── Reusable field error component ───────────────────────────────────────────
 function FieldError({ msg }) {
   if (!msg) return null;
   return <p className="mt-1 text-xs text-red-500 flex items-center gap-1">⚠ {msg}</p>;
 }
 
+// ── Input class helper ────────────────────────────────────────────────────────
 function inputCls(hasError) {
   return `mt-1 w-full rounded-lg border px-3 py-2 text-sm ${
     hasError 
@@ -33,28 +35,44 @@ export default function AdminResourceApprovalPage() {
   const [uploading, setUploading] = useState(false);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
 
-  // --- ROLE VERIFICATION ---
+  // --- ROLE & TOKEN VERIFICATION ---
   const [userRole, setUserRole] = useState("");
+  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
   
   useEffect(() => {
-    // Fetch the role from localStorage when the component mounts
     const role = localStorage.getItem("role");
-    if (role) {
-      setUserRole(role);
+    const storedUser = localStorage.getItem("user");
+    
+    if (role) setUserRole(role);
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
+      } catch (err) {
+        console.error("Failed to parse session token data", err);
+      }
     }
   }, []);
 
   // Boolean to easily check if the user is an admin
   const isAdmin = userRole === "Admin";
 
+  // SECURED GENERAL RESOURCES LOAD
   const loadResources = useCallback(async () => {
+    if (!userToken) return;
     try {
-      const res = await fetch(`${API_BASE}/resources?status=ALL`);
+      const res = await fetch(`${API_BASE}/resources?status=ALL`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+          "Content-Type": "application/json"
+        }
+      });
       if (!res.ok) throw new Error();
       setResources(await res.json());
       setBackendStatus("Online");
     } catch { setBackendStatus("Offline"); }
-  }, []);
+  }, [userToken]);
 
   useEffect(() => { loadResources(); }, [loadResources]);
 
@@ -70,7 +88,6 @@ export default function AdminResourceApprovalPage() {
   const filtered = useMemo(() => {
     let list = [...resources].sort((a, b) => Number(b.id) - Number(a.id));
     
-    // Apply tab filter
     if (statusTab !== "ALL") {
       if (statusTab === "PENDING") {
         list = list.filter(r => r.status === "PENDING" || !r.status);
@@ -79,7 +96,6 @@ export default function AdminResourceApprovalPage() {
       }
     }
     
-    // Apply search and type filters
     if (search.trim()) list = list.filter(r => r.title?.toLowerCase().includes(search.toLowerCase()));
     if (filterFileType) list = list.filter(r => r.fileType?.toLowerCase() === filterFileType);
     
@@ -140,15 +156,15 @@ export default function AdminResourceApprovalPage() {
     return Object.keys(e).length === 0;
   }
 
+  // SECURED MULTIPART UPLOAD
   async function handleUpload(e) {
     e.preventDefault();
     
-    // Security check: Admins cannot upload
     if (isAdmin) {
       alert("Admins are not permitted to upload resources.");
       return;
     }
-    
+    if (!userToken) return;
     if (!validateUpload()) return;
     
     const { title, category, description, file } = uploadForm;
@@ -159,9 +175,15 @@ export default function AdminResourceApprovalPage() {
       fd.append("category", category.trim());
       fd.append("description", description.trim()); 
       fd.append("file", file);
-      fd.append("uploadedBy", userRole || "Academic Panel"); // Use dynamic role
+      fd.append("uploadedBy", userRole || "Academic Panel");
       
-      const res = await fetch(`${API_BASE}/resources/upload`, { method: "POST", body: fd });
+      const res = await fetch(`${API_BASE}/resources/upload`, { 
+        method: "POST", 
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+        },
+        body: fd 
+      });
       if (!res.ok) throw new Error();
       
       const saved = await res.json();
@@ -176,11 +198,17 @@ export default function AdminResourceApprovalPage() {
     finally { setUploading(false); }
   }
 
-  // ── Approve / Reject ──────────────────────────────────────────────────────
+  // ── SECURED APPROVAL / REJECTION ACTIONS ───────────────────────────────────
   async function setStatus(id, action) {
-    if (!isAdmin) return; // Security check
+    if (!isAdmin || !userToken) return; 
     try {
-      const res = await fetch(`${API_BASE}/resources/${id}/${action}`, { method: "PUT" });
+      const res = await fetch(`${API_BASE}/resources/${id}/${action}`, { 
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json"
+        }
+      });
       if (res.ok) {
         const updated = await res.json();
         setResources(prev => prev.map(r => r.id === id ? updated : r));
@@ -193,12 +221,16 @@ export default function AdminResourceApprovalPage() {
     }
   }
 
-  // ── Edit ──────────────────────────────────────────────────────────────────
+  // ── SECURED RESOURCE METADATA UPDATE ───────────────────────────────────────
   async function handleEditSave() {
-    if (!isAdmin || !validateEdit()) return; // Security check
+    if (!isAdmin || !userToken || !validateEdit()) return; 
     try {
       const res = await fetch(`${API_BASE}/resources/${editing.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", 
+        headers: { 
+          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ title: editing.title, category: editing.category, description: editing.description }),
       });
       if (!res.ok) throw new Error();
@@ -209,11 +241,17 @@ export default function AdminResourceApprovalPage() {
     } catch { alert("Update failed."); }
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
+  // ── SECURED DELETION ───────────────────────────────────────────────────────
   async function handleDelete(id) {
-    if (!isAdmin || !window.confirm("Permanently delete this resource?")) return; // Security check
+    if (!isAdmin || !userToken || !window.confirm("Permanently delete this resource?")) return; 
     try {
-      await fetch(`${API_BASE}/resources/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/resources/${id}`, { 
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+        }
+      });
+      if (!res.ok) throw new Error();
       setResources(prev => prev.filter(r => r.id !== id));
     } catch { alert("Delete failed."); }
   }
@@ -407,7 +445,6 @@ export default function AdminResourceApprovalPage() {
                 <th className="px-4 py-3 text-center">Type</th>
                 <th className="px-4 py-3 text-center">Date</th>
                 <th className="px-4 py-3 text-center">Status</th>
-                {/* Actions header only for Admins */}
                 {isAdmin && <th className="px-4 py-3 text-center">Actions</th>}
               </tr>
             </thead>
@@ -432,7 +469,6 @@ export default function AdminResourceApprovalPage() {
                     </span>
                   </td>
                   
-                  {/* Actions cell only for Admins */}
                   {isAdmin && (
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap justify-center gap-1">

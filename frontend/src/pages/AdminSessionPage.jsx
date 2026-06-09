@@ -22,16 +22,40 @@ export default function AdminSessionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [filterStatus, setFilterStatus] = useState("ALL");
 
+  // --- TOKEN VERIFICATION ---
+  const [adminToken, setAdminToken] = useState(null); // 🔥 Track active admin JWT token string
+
   const today = new Date().toISOString().split("T")[0];
 
+  // 1. Retrieve the real token from Local Storage on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setAdminToken(parsedUser.token); // 🔥 Bind active session JWT
+      } catch (err) {
+        console.error("Failed to parse admin session token data", err);
+      }
+    }
+  }, []);
+
+  // SECURED GENERAL SESSIONS LOAD
   const loadSessions = useCallback(async () => {
+    if (!adminToken) return;
     try {
-      const res = await fetch(`${API_BASE}/sessions`);
+      const res = await fetch(`${API_BASE}/sessions`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Attaching JWT Bearer Header
+          "Content-Type": "application/json"
+        }
+      });
       if (!res.ok) throw new Error();
       setSessions(await res.json());
       setBackendStatus("Online");
     } catch { setBackendStatus("Offline"); }
-  }, []);
+  }, [adminToken]); // Added adminToken as dependency to monitor lifecycle safely
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
@@ -74,13 +98,19 @@ export default function AdminSessionPage() {
     return Object.keys(e).length === 0;
   }
 
+  // SECURED SESSION CREATION
   async function handleCreate(e) {
     e.preventDefault();
+    if (!adminToken) return;
     if (!validate(form, setFormErrors)) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/sessions`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", 
+        headers: { 
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ ...form, status: "UPCOMING" }),
       });
       if (!res.ok) { const msg = await res.text(); alert(msg || "Create failed."); return; }
@@ -92,11 +122,17 @@ export default function AdminSessionPage() {
     finally { setSubmitting(false); }
   }
 
+  // SECURED SESSION METADATA UPDATE
   async function handleEditSave() {
+    if (!adminToken) return;
     if (!validate(editingSession, setEditErrors)) return;
     try {
       const res = await fetch(`${API_BASE}/sessions/${editingSession.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", 
+        headers: { 
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify(editingSession),
       });
       if (!res.ok) throw new Error();
@@ -107,18 +143,31 @@ export default function AdminSessionPage() {
     } catch { alert("Update failed."); }
   }
 
+  // SECURED SESSION DELETION
   async function handleDelete(id) {
-    if (!window.confirm("Delete this session?")) return;
+    if (!adminToken || !window.confirm("Delete this session?")) return;
     try {
-      await fetch(`${API_BASE}/sessions/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/sessions/${id}`, { 
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${adminToken}` // 🔑 Passing JWT here
+        }
+      });
+      if (!res.ok) throw new Error();
       setSessions(prev => prev.filter(s => s.id !== id));
     } catch { alert("Delete failed."); }
   }
 
+  // SECURED STATUS TOGGLE BLOCK
   async function changeStatus(id, status) {
+    if (!adminToken) return;
     try {
       const res = await fetch(`${API_BASE}/sessions/${id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT", 
+        headers: { 
+          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Content-Type": "application/json" 
+        },
         body: JSON.stringify({ status }),
       });
       if (res.ok) { const updated = await res.json(); setSessions(prev => prev.map(s => s.id === id ? updated : s)); }
@@ -378,4 +427,3 @@ export default function AdminSessionPage() {
     </main>
   );
 }
-
