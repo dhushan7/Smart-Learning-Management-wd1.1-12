@@ -14,13 +14,13 @@ export default function AdminProfile() {
     const raw = localStorage.getItem("user");
     const stored = raw ? JSON.parse(raw) : null;
 
-    // 🔥 Secure Extraction: Require valid email and security signature token
+    // Require valid email and security signature token
     if (!stored?.email || !stored?.token) return;
 
     axios
       .get(`http://localhost:8086/user/profile?email=${stored.email}`, {
         headers: {
-          Authorization: `Bearer ${stored.token}`, // 🔑 Attaching JWT Bearer Token
+          Authorization: `Bearer ${stored.token}`, // Attaching JWT Bearer Token
           "Content-Type": "application/json",
         },
       })

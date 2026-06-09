@@ -20,7 +20,7 @@ export default function EditProfile({ closeModal }) {
   const [strength, setStrength] = useState(0);
 
   const stored = JSON.parse(localStorage.getItem("user") || "{}");
-  const token = stored?.token; // 🔑 Extracting backend-issued JWT token
+  const token = stored?.token; // Extracting backend-issued JWT token
 
   useEffect(() => {
     if (!stored?.email || !token) {
@@ -32,7 +32,7 @@ export default function EditProfile({ closeModal }) {
     axios
       .get(`http://localhost:8086/user/profile?email=${stored.email}`, {
         headers: {
-          Authorization: `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+          Authorization: `Bearer ${token}`, // Attaching JWT Bearer Header
         },
       })
       .then((res) => {
@@ -103,7 +103,7 @@ export default function EditProfile({ closeModal }) {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // 🔑 Passing JWT here
+            Authorization: `Bearer ${token}`, // Passing JWT here
             "Content-Type": "multipart/form-data",
           },
         }
@@ -134,7 +134,7 @@ export default function EditProfile({ closeModal }) {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+            Authorization: `Bearer ${token}`, // Attaching JWT Bearer Header
             "Content-Type": "application/json",
           },
         }

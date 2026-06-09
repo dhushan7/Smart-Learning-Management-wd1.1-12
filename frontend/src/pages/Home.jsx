@@ -56,7 +56,7 @@ export default function Home() {
   return (
     <div className="font-sans text-gray-800">
 
-      {/* PAGE 1: HERO */}
+      {/* HERO */}
       <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-gradient-to-br from-indigo-200 via-blue-100 to-purple-100">
         
         <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mt-10">
@@ -84,7 +84,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PAGE 2: FEATURES */}
+      {/* FEATURES */}
       <section className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 py-20">
         
         <div className="text-center mb-12">
@@ -94,7 +94,7 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 5 FEATURE CARDS */}
+        {/* FEATURE CARDS */}
         <div className="flex flex-wrap justify-center gap-6 max-w-6xl w-full">
           
           {/* Tasks */}
@@ -145,7 +145,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PAGE 3: ABOUT */}
+      {/* ABOUT */}
       <section
         ref={aboutRef}
         className="min-h-screen flex items-center justify-center bg-white px-6 py-12"
@@ -190,7 +190,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PAGE 4: CONTACT */}
+      {/* CONTACT */}
       <section
         ref={contactRef}
         className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50 px-6 py-12"

@@ -43,9 +43,9 @@ export default function AdminCreditPage() {
   const [editErrors, setEditErrors] = useState({});
 
   // --- TOKEN VERIFICATION ---
-  const [adminToken, setAdminToken] = useState(null); // 🔥 Track active admin JWT token string
+  const [adminToken, setAdminToken] = useState(null); // Track active admin JWT token string
 
-  // 1. Load Admin Token and Fetch Users dynamically on mount
+  // Load Admin Token and Fetch Users dynamically on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     let tokenString = null;
@@ -54,7 +54,7 @@ export default function AdminCreditPage() {
       try {
         const parsedUser = JSON.parse(storedUser);
         tokenString = parsedUser.token;
-        setAdminToken(tokenString); // 🔥 Bind token to react state context
+        setAdminToken(tokenString); // Bind token to react state context
       } catch (err) {
         console.error("Failed to parse admin session token data", err);
       }
@@ -103,7 +103,7 @@ export default function AdminCreditPage() {
     fetchUsers();
   }, []);
 
-  // 2. Load credits + history dynamically with Secure JWT Headers
+  // Load credits + history dynamically with Secure JWT Headers
   const loadStudentData = useCallback(async (studentId) => {
     if (!studentId || !adminToken) {
       setTotalCredits(null);
@@ -113,7 +113,7 @@ export default function AdminCreditPage() {
     
     try {
       const secureHeaders = {
-        "Authorization": `Bearer ${adminToken}`, // 🔑 Attaching JWT Bearer Header
+        "Authorization": `Bearer ${adminToken}`, // Attaching JWT Bearer Header
         "Content-Type": "application/json"
       };
 
@@ -210,7 +210,7 @@ export default function AdminCreditPage() {
       const res = await fetch(`${API_BASE}/credits/award`, {
         method: "POST",
         headers: { 
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ studentId: awardForm.studentId, activity, credits }),
@@ -241,7 +241,7 @@ export default function AdminCreditPage() {
       const res = await fetch(`${API_BASE}/credits/transaction/${tx.id}`, { 
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${adminToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}` // Passing JWT here
         }
       });
       if (!res.ok) throw new Error();
@@ -257,7 +257,7 @@ export default function AdminCreditPage() {
       const res = await fetch(`${API_BASE}/credits/transaction/${editingTx.id}`, {
         method: "PUT",
         headers: { 
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ activity: editingTx.activity.trim(), credits }),

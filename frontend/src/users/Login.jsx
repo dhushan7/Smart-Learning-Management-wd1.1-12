@@ -4,7 +4,6 @@ import UserRegister from "./userRegister";
 import FloatingInput from "../component/FloatingInput";
 import { useNavigate } from "react-router-dom";
 
-// Import Google Login button component
 import { GoogleLogin } from "@react-oauth/google";
 
 export default function Login({ closeModal }) {
@@ -106,19 +105,19 @@ export default function Login({ closeModal }) {
   setSuccess("");
 
   try {
-    // 1. Decode the credential payload safely to read the email first
+    // Decode the credential payload safely to read the email first
     const base64Url = credentialResponse.credential.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const payload = JSON.parse(window.atob(base64));
     
-    // 2. Validate against SLIIT domain pattern
+    // Validate against SLIIT domain pattern
     const sliitEmailRegex = /^[iI][tT]\d{8}@my\.sliit\.lk$/;
     if (!sliitEmailRegex.test(payload.email)) {
       setError("Access Denied: Only official SLIIT student accounts are permitted.");
       return; // Stop execution here
     }
 
-    // 3. Proceed to backend verification if regex passes
+    // Proceed to backend verification if regex passes
     const response = await fetch(`${BASE_URL}/user/google-login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -210,7 +209,7 @@ export default function Login({ closeModal }) {
           </button>
         </form>
 
-        {/* Google Authentication Segment */}
+        {/* Google Authentication */}
         <div className="flex flex-col items-center justify-center mt-5 pt-4 border-t border-white/20">
           <p className="text-xs text-white/60 mb-3 uppercase tracking-wider">
             Or Sign In With

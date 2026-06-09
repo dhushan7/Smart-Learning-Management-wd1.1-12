@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 export default function Dashboard() {
   const [stats, setStats] = useState({});
 
-  // 🔥 Secure Extraction: Pull user metrics alongside the active token from localStorage
+  // Pull user metrics alongside the active token from localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email;
   const token = user?.token;
@@ -16,7 +16,7 @@ export default function Dashboard() {
     fetch(`http://localhost:8086/tasks/stats?email=${email}`, {
       method: "GET",
       headers: {
-        // 🔑 Attaching the custom application JWT Bearer Header
+        // Attaching the custom application JWT Bearer Header
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"
       }

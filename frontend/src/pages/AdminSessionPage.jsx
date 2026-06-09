@@ -23,17 +23,17 @@ export default function AdminSessionPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
 
   // --- TOKEN VERIFICATION ---
-  const [adminToken, setAdminToken] = useState(null); // 🔥 Track active admin JWT token string
+  const [adminToken, setAdminToken] = useState(null); // Track active admin JWT token string
 
   const today = new Date().toISOString().split("T")[0];
 
-  // 1. Retrieve the real token from Local Storage on mount
+  // Retrieve the real token from Local Storage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setAdminToken(parsedUser.token); // 🔥 Bind active session JWT
+        setAdminToken(parsedUser.token); // Bind active session JWT
       } catch (err) {
         console.error("Failed to parse admin session token data", err);
       }
@@ -47,7 +47,7 @@ export default function AdminSessionPage() {
       const res = await fetch(`${API_BASE}/sessions`, {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Attaching JWT Bearer Header
+          "Authorization": `Bearer ${adminToken}`, // Attaching JWT Bearer Header
           "Content-Type": "application/json"
         }
       });
@@ -108,7 +108,7 @@ export default function AdminSessionPage() {
       const res = await fetch(`${API_BASE}/sessions`, {
         method: "POST", 
         headers: { 
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ ...form, status: "UPCOMING" }),
@@ -130,7 +130,7 @@ export default function AdminSessionPage() {
       const res = await fetch(`${API_BASE}/sessions/${editingSession.id}`, {
         method: "PUT", 
         headers: { 
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify(editingSession),
@@ -150,7 +150,7 @@ export default function AdminSessionPage() {
       const res = await fetch(`${API_BASE}/sessions/${id}`, { 
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${adminToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}` // Passing JWT here
         }
       });
       if (!res.ok) throw new Error();
@@ -165,7 +165,7 @@ export default function AdminSessionPage() {
       const res = await fetch(`${API_BASE}/sessions/${id}`, {
         method: "PUT", 
         headers: { 
-          "Authorization": `Bearer ${adminToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${adminToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ status }),

@@ -9,7 +9,7 @@ export default function StudySessionPage() {
   
   // States to track active user information and verification signature strings
   const [currentUser, setCurrentUser] = useState(null);
-  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
+  const [userToken, setUserToken] = useState(null); // Track active JWT token string
 
   // Fetch the current user and signature token when the component mounts
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function StudySessionPage() {
       try {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser.username); 
-        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
+        setUserToken(parsedUser.token); // Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
@@ -36,7 +36,7 @@ export default function StudySessionPage() {
       const res = await fetch(endpoint, {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+          "Authorization": `Bearer ${userToken}`, // Attaching JWT Bearer Header
           "Content-Type": "application/json"
         }
       });
@@ -59,7 +59,7 @@ export default function StudySessionPage() {
       const res = await fetch(`${API_BASE}/sessions/${sessionId}/join?userId=${currentUser}`, { 
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}` // Passing JWT here
         }
       });
       if (res.ok) { 
@@ -77,7 +77,7 @@ export default function StudySessionPage() {
       const res = await fetch(`${API_BASE}/sessions/${sessionId}/leave?userId=${currentUser}`, { 
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}` // Passing JWT here
         }
       });
       if (res.ok) { 

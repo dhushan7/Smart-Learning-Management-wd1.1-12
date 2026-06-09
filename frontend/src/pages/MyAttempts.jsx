@@ -5,10 +5,10 @@ import "../App.css";
 function MyAttempts() {
   const [attempts, setAttempts] = useState([]);
 
-  // 🔥 Secure Extraction: Parse the user object from localStorage to get the email and token
+  // Parse the user object from localStorage to get the email and token
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const email = storedUser?.email;
-  const token = storedUser?.token; // 🔑 Extracting backend-issued JWT token
+  const token = storedUser?.token; // Extracting backend-issued JWT token
 
   useEffect(() => {
     // Only attempt the network fetch if a valid authentication token exists
@@ -20,7 +20,7 @@ function MyAttempts() {
           `http://localhost:8086/api/quiz-attempts/user/${email}`,
           {
             headers: {
-              // 🔑 Attaching JWT Bearer Header to pass Spring Security filters safely
+              // Attaching JWT Bearer Header to pass Spring Security filters safely
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },

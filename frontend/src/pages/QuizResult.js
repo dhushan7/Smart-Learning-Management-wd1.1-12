@@ -42,7 +42,7 @@ function QuizResult() {
       // Lock the gate IMMEDIATELY so StrictMode doesn't fire twice
       hasAwarded.current = true;
 
-      // 🔥 Secure Extraction: Read the full user object to obtain both username and JWT token
+      // Read the full user object to obtain both username and JWT token
       const storedUser = localStorage.getItem("user");
       if (!storedUser) {
         console.warn("DEBUG: Could not award credits. No user found in localStorage.");
@@ -52,7 +52,7 @@ function QuizResult() {
       try {
         const parsedUser = JSON.parse(storedUser);
         const username = parsedUser.username;
-        const token = parsedUser.token; // 🔑 Extracting backend-issued JWT token
+        const token = parsedUser.token; // Extracting backend-issued JWT token
 
         if (!token) {
           console.warn("DEBUG: Could not award credits. Missing authentication token signature.");

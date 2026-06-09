@@ -4,7 +4,7 @@ const API_BASE = "http://localhost:8086/api";
 
 export default function CreditAwardingPage() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
+  const [userToken, setUserToken] = useState(null); // Track active JWT token string
   const [totalCredits, setTotalCredits] = useState(0);
   const [history, setHistory] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
@@ -16,7 +16,7 @@ export default function CreditAwardingPage() {
       try {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser.username); 
-        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
+        setUserToken(parsedUser.token); // Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
@@ -31,7 +31,7 @@ export default function CreditAwardingPage() {
 
     try {
       const secureHeaders = {
-        "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+        "Authorization": `Bearer ${userToken}`, // Attaching JWT Bearer Header
         "Content-Type": "application/json"
       };
 

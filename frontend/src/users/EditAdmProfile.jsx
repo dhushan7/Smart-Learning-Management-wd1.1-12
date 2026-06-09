@@ -16,7 +16,7 @@ export default function EditProfile() {
 
   const stored = JSON.parse(localStorage.getItem("user") || "{}");
   const role = (stored?.role || "").toLowerCase();
-  const token = stored?.token; // 🔑 Extracting backend-issued JWT token
+  const token = stored?.token; // Extracting backend-issued JWT token
 
   const getUpdateUrl = () => {
     if (role === "admin") return "http://localhost:8086/user/admin/update-profile";
@@ -35,7 +35,7 @@ export default function EditProfile() {
       .get("http://localhost:8086/user/profile", {
         params: { email: stored.email },
         headers: {
-          Authorization: `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+          Authorization: `Bearer ${token}`, // Attaching JWT Bearer Header
         },
       })
       .then((res) => {
@@ -69,13 +69,12 @@ export default function EditProfile() {
       // Secure PUT profile data
       const res = await axios.put(getUpdateUrl(), formData, {
         headers: {
-          Authorization: `Bearer ${token}`, // 🔑 Passing JWT inside multipart form content
+          Authorization: `Bearer ${token}`, // Passing JWT inside multipart form content
           "Content-Type": "multipart/form-data",
         },
       });
 
       Swal.fire("Success", "Profile updated", "success").then(() => {
-        // Keep the existing active token intact while merging the rest of user payload data
         const updatedSession = { ...stored, ...res.data, token: stored.token };
         localStorage.setItem("user", JSON.stringify(updatedSession));
         navigate(-1);
@@ -103,7 +102,7 @@ export default function EditProfile() {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+            Authorization: `Bearer ${token}`, // Attaching JWT Bearer Header
             "Content-Type": "application/json",
           },
         }

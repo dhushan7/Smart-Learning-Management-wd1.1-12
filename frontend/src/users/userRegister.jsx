@@ -174,7 +174,7 @@ export default function UserRegister({ closeModal, openLogin }) {
       return;
     }
 
-    // 🔥 CHECK USERNAME BEFORE OTP
+    // CHECK USERNAME BEFORE OTP
     const isAvailable = await checkUsername(formData.username);
 
     if (!isAvailable) return;

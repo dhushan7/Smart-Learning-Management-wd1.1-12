@@ -92,7 +92,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit, use
     const [success, setSuccess] = useState("");
     const [loadingAI, setLoadingAI] = useState(false);
 
-    // 🔥 Secure Extraction: Extract the signature token directly from active localStorage session mapping
+    // Extract the signature token directly from active localStorage session mapping
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const token = storedUser?.token;
 
@@ -132,7 +132,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit, use
             const res = await fetch("http://localhost:8086/tasks/suggest", {
                 method: "POST",
                 headers: {
-                    // 🔑 Appending the custom app JWT signature
+                    // Appending the custom app JWT signature
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 }
@@ -189,7 +189,7 @@ export default function AddTask({ closeModal, onTaskAdded, editTask, isEdit, use
             const res = await fetch(url, {
                 method,
                 headers: { 
-                    // 🔑 Enforcing custom authorized session headers on data mutations
+                    // Enforcing custom authorized session headers on data mutations
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json" 
                 },

@@ -37,7 +37,7 @@ export default function AdminResourceApprovalPage() {
 
   // --- ROLE & TOKEN VERIFICATION ---
   const [userRole, setUserRole] = useState("");
-  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
+  const [userToken, setUserToken] = useState(null); // Track active JWT token string
   
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -47,7 +47,7 @@ export default function AdminResourceApprovalPage() {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
+        setUserToken(parsedUser.token); // Bind active session JWT
       } catch (err) {
         console.error("Failed to parse session token data", err);
       }
@@ -64,7 +64,7 @@ export default function AdminResourceApprovalPage() {
       const res = await fetch(`${API_BASE}/resources?status=ALL`, {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${userToken}`, // 🔑 Attaching JWT Bearer Header
+          "Authorization": `Bearer ${userToken}`, // Attaching JWT Bearer Header
           "Content-Type": "application/json"
         }
       });
@@ -180,7 +180,7 @@ export default function AdminResourceApprovalPage() {
       const res = await fetch(`${API_BASE}/resources/upload`, { 
         method: "POST", 
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}` // Passing JWT here
         },
         body: fd 
       });
@@ -205,7 +205,7 @@ export default function AdminResourceApprovalPage() {
       const res = await fetch(`${API_BASE}/resources/${id}/${action}`, { 
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}`, // Passing JWT here
           "Content-Type": "application/json"
         }
       });
@@ -228,7 +228,7 @@ export default function AdminResourceApprovalPage() {
       const res = await fetch(`${API_BASE}/resources/${editing.id}`, {
         method: "PUT", 
         headers: { 
-          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}`, // Passing JWT here
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ title: editing.title, category: editing.category, description: editing.description }),
@@ -248,7 +248,7 @@ export default function AdminResourceApprovalPage() {
       const res = await fetch(`${API_BASE}/resources/${id}`, { 
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT here
+          "Authorization": `Bearer ${userToken}` // Passing JWT here
         }
       });
       if (!res.ok) throw new Error();

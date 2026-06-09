@@ -23,7 +23,7 @@ export default function TaskList() {
   // trigger re-render for countdown
   const [, setTick] = useState(0);
 
-  // 🔥 Extracting user parameters alongside our session JWT token
+  // Extracting user parameters alongside our session JWT token
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const email = user?.email;
   const token = user?.token;
@@ -46,7 +46,7 @@ export default function TaskList() {
 
     try {
       const headersConfig = {
-        "Authorization": `Bearer ${token}`, // 🔑 Attaching JWT Bearer Header
+        "Authorization": `Bearer ${token}`, // Attaching JWT Bearer Header
         "Content-Type": "application/json"
       };
 
@@ -72,7 +72,7 @@ export default function TaskList() {
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
-      // 🔥 Passing the JWT token inside the connect headers to bypass Spring Security WebSocket filters
+      // Passing the JWT token inside the connect headers to bypass Spring Security WebSocket filters
       connectHeaders: {
         "Authorization": `Bearer ${token}`
       }
@@ -84,8 +84,8 @@ export default function TaskList() {
 
         setNotifications(prev => [newNotif, ...prev]);
 
-        playNotificationSound(); // 🔊 sound
-        showToast(`⏰ ${newNotif.title} is due soon!`, "success"); // 📢 popup
+        playNotificationSound(); // sound
+        showToast(`⏰ ${newNotif.title} is due soon!`, "success"); // popup
       });
     };
 
@@ -109,7 +109,7 @@ export default function TaskList() {
       await fetch(`http://localhost:8086/tasks/${id}/complete`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+          "Authorization": `Bearer ${token}` // Passing JWT
         }
       });
 
@@ -133,7 +133,7 @@ export default function TaskList() {
       await fetch(`http://localhost:8086/tasks/${deleteId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+          "Authorization": `Bearer ${token}` // Passing JWT
         }
       });
 
@@ -155,7 +155,7 @@ export default function TaskList() {
       await fetch(`http://localhost:8086/tasks/${id}/readNotification`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+          "Authorization": `Bearer ${token}` // Passing JWT
         }
       });
 
@@ -176,7 +176,7 @@ export default function TaskList() {
       await fetch(`http://localhost:8086/tasks/${notifDeleteId}/dismissNotification`, {
         method: "PUT",
         headers: {
-          "Authorization": `Bearer ${token}` // 🔑 Passing JWT
+          "Authorization": `Bearer ${token}` // Passing JWT
         }
       });
 

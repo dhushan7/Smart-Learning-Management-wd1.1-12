@@ -18,13 +18,13 @@ export default function UsrProfile() {
     const raw = localStorage.getItem("user");
     const stored = raw ? JSON.parse(raw) : null;
 
-    // 🔥 Secure Extraction: Pull both email and token from storage
+    // Secure Extraction- Pull both email and token from storage
     if (!stored?.email || !stored?.token) return;
 
     axios
       .get(`http://localhost:8086/user/profile?email=${stored.email}`, {
         headers: {
-          Authorization: `Bearer ${stored.token}`, // 🔑 Attaching JWT Bearer Token
+          Authorization: `Bearer ${stored.token}`, // Attaching JWT Bearer Token
           "Content-Type": "application/json",
         },
       })
@@ -65,7 +65,7 @@ export default function UsrProfile() {
           </div>
         )}
 
-        {/* ✅ DELETE MODAL WITH SECURE JWT HEADERS */}
+        {/* DELETE MODAL WITH SECURE JWT HEADERS */}
         {showDeleteModal && (
           <div className="fixed inset-0 flex items-center justify-center z-50">
 
@@ -130,12 +130,12 @@ export default function UsrProfile() {
                         const raw = localStorage.getItem("user");
                         const stored = raw ? JSON.parse(raw) : null;
 
-                        // 🔥 Securing Account Deletion Endpoint with JWT Headers
+                        // Securing Account Deletion Endpoint with JWT Headers
                         await axios.delete(
                           `http://localhost:8086/user/delete?email=${stored.email}`,
                           {
                             headers: {
-                              Authorization: `Bearer ${stored.token}`, // 🔑 Passing JWT here
+                              Authorization: `Bearer ${stored.token}`, // Passing JWT
                             },
                             data: { reason: deleteReason },
                           }

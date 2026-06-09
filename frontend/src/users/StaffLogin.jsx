@@ -67,7 +67,7 @@ export default function StaffLogin({ closeModal }) {
   }
 
   return (
-    // ✅ FULL SCREEN CENTER MODAL WRAPPER
+    // FULL SCREEN CENTER MODAL
     <div className="fixed inset-0 flex items-center justify-center z-50">
 
       {/* BACKDROP */}

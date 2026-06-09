@@ -18,7 +18,7 @@ function inputCls(hasError) {
 
 export default function ResourceManagementPage() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [userToken, setUserToken] = useState(null); // 🔥 Track active JWT token string
+  const [userToken, setUserToken] = useState(null); // Track active JWT token string
   const [resources, setResources] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
   const [form, setForm] = useState({ title: "", category: "", description: "", file: null });
@@ -37,7 +37,7 @@ export default function ResourceManagementPage() {
       try {
         const parsedUser = JSON.parse(storedUser);
         setCurrentUser(parsedUser.username); 
-        setUserToken(parsedUser.token); // 🔥 Bind active session JWT
+        setUserToken(parsedUser.token); // Bind active session JWT
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
@@ -60,7 +60,7 @@ export default function ResourceManagementPage() {
     // If we have an authorized user session, query protected tracking metrics
     if (currentUser && userToken) {
       const secureHeaders = {
-        "Authorization": `Bearer ${userToken}`, // 🔑 Passing token
+        "Authorization": `Bearer ${userToken}`, // Passing token
         "Content-Type": "application/json"
       };
 
@@ -160,7 +160,7 @@ export default function ResourceManagementPage() {
       const res = await fetch(`${API_BASE}/resources/upload`, { 
         method: "POST", 
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Token injected into FormData mutation stream
+          "Authorization": `Bearer ${userToken}` // Token injected into FormData mutation stream
         },
         body: fd 
       });
@@ -181,7 +181,7 @@ export default function ResourceManagementPage() {
       const res = await fetch(`${API_BASE}/resources/${id}`, { 
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${userToken}` // 🔑 Passing JWT
+          "Authorization": `Bearer ${userToken}` // Passing JWT
         }
       });
       if (!res.ok && res.status !== 204) throw new Error();
@@ -192,7 +192,7 @@ export default function ResourceManagementPage() {
   async function handleApprove(id) {
     const res = await fetch(`${API_BASE}/resources/${id}/approve`, { 
       method: "PUT",
-      headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+      headers: { "Authorization": `Bearer ${userToken}` } // Passing JWT
     });
     if (res.ok) setResources(prev => prev.map(r => r.id === id ? { ...r, status: "APPROVED" } : r));
   }
@@ -200,7 +200,7 @@ export default function ResourceManagementPage() {
   async function handleReject(id) {
     const res = await fetch(`${API_BASE}/resources/${id}/reject`, { 
       method: "PUT",
-      headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+      headers: { "Authorization": `Bearer ${userToken}` } // Passing JWT
     });
     if (res.ok) setResources(prev => prev.map(r => r.id === id ? { ...r, status: "REJECTED" } : r));
   }
@@ -216,7 +216,7 @@ export default function ResourceManagementPage() {
       await fetch(`${API_BASE}/progress`, {
         method: "POST", 
         headers: { 
-          "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT
+          "Authorization": `Bearer ${userToken}`, // Passing JWT
           "Content-Type": "application/json" 
         },
         body: JSON.stringify(next),
@@ -239,13 +239,13 @@ export default function ResourceManagementPage() {
       if (isFav) {
         await fetch(`${API_BASE}/favourites?userId=${currentUser}&resourceId=${resourceId}`, { 
           method: "DELETE",
-          headers: { "Authorization": `Bearer ${userToken}` } // 🔑 Passing JWT
+          headers: { "Authorization": `Bearer ${userToken}` } // Passing JWT
         });
       } else {
         await fetch(`${API_BASE}/favourites`, {
           method: "POST", 
           headers: { 
-            "Authorization": `Bearer ${userToken}`, // 🔑 Passing JWT
+            "Authorization": `Bearer ${userToken}`, // Passing JWT
             "Content-Type": "application/json" 
           },
           body: JSON.stringify({ userId: currentUser, resourceId }),

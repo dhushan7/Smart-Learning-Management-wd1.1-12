@@ -39,7 +39,7 @@ export default function Dashboard() {
               Student Dashboard
             </h1>
             <p className="text-gray-600">
-              Here’s a quick overview of your system.
+              Here’s a quick overview of the system.
             </p>
           </header>
 
@@ -75,7 +75,7 @@ export default function Dashboard() {
               {role} Dashboard
             </h1>
             <p className="text-gray-600">
-              Here’s a quick overview of your system.
+              Here’s a quick overview of the system.
             </p>
           </header>
 

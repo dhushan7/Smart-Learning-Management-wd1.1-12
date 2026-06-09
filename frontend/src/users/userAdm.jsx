@@ -55,7 +55,7 @@ export default function UserAdm() {
   const role = localStorage.getItem("role");
   const navigate = useNavigate();
 
-  // ✅ FIX: consistent token extraction
+  // consistent token extraction
   const getToken = () => {
     try {
       const stored = JSON.parse(localStorage.getItem("user"));
@@ -187,7 +187,7 @@ export default function UserAdm() {
     }
   };
 
-  // PAGINATION SAFE FIX
+  // PAGINATION
   const totalPages = Math.max(
     1,
     Math.ceil(filteredUsers.length / usersPerPage)

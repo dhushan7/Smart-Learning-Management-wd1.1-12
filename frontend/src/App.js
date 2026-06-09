@@ -43,7 +43,7 @@ function App() {
                 <AdminNavBar />
 
                 <Routes>
-                    {/* PUBLIC ROUTES (Anyone can see these)*/}
+                    {/* PUBLIC ROUTES */}
                     <Route path="/" element={<Home />} />
                     <Route path="/register" element={<UserRegister />} />
       
