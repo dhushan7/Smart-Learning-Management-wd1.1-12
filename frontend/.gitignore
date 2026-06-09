@@ -37,3 +37,10 @@ coverage/
 
 # cache
 .cache/
+
+# dependencies
+**/node_modules/
+frontend/node_modules/
+package-lock.json
+/.pnp
+.pnp.js
