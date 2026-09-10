@@ -6,24 +6,35 @@ const api = axios.create({
 
 });
 
-// 🔥 Auto attach token to every request
+import { jwtDecode } from "jwt-decode";
 
 api.interceptors.request.use((config) => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = user?.token;
 
-  const token = localStorage.getItem("token");
+  if (token) {
+    const decoded = jwtDecode(token);
 
-  if (token && token !== "null") {
+    if (decoded.exp * 1000 < Date.now()) {
+      localStorage.removeItem("user");
+      window.location.href = "/";
+      return Promise.reject("Token expired");
+    }
 
     config.headers.Authorization = `Bearer ${token}`;
-
-  } else {
-
-    console.warn("⚠️ No valid token found");
-
   }
 
   return config;
-
 });
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem("user");
+      window.location.href = "/";
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;

@@ -2,18 +2,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import UserRegister from "../users/userRegister";
 import Login from "../users/Login";
+import { useAuth } from "../api/AuthContext";
 
 export default function Navbar() {
   const role = localStorage.getItem("role");
   const navigate = useNavigate();
+   const menuRef = useRef(null);
+  const { user } = useAuth();
 
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const menuRef = useRef();
-  const user = JSON.parse(localStorage.getItem("user"));
 
   const handleLogout = () => {
     localStorage.clear();
@@ -31,6 +32,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // if (!user) return null;
   if (role === "Admin" || role === "Academic Panel") return null;
 
   const navStyle = (isActive) =>

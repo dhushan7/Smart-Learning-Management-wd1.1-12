@@ -1,5 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Login from "../users/Login";
+import AuroraBackground from "../component/AuroraBackground";
+import HomeBG from "../assets/homebg.jpg"
 
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
@@ -55,37 +57,46 @@ export default function Home() {
 
   return (
     <div className="font-sans text-gray-800">
+        <AuroraBackground />
 
       {/* HERO */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-gradient-to-br from-indigo-200 via-blue-100 to-purple-100">
-        
-        <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mt-10">
-          Smart <span className="text-purple-600">Learning Platform</span>
-        </h1>
+      <section
+        className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 py-20 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${HomeBG})` }}
+      >
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/60"></div>
 
-        <p className="mt-4 text-lg text-gray-600 max-w-xl">
-          Organize your studies, track tasks, manage resources, and boost your productivity — all in one place.
-        </p>
+        {/* Content */}
+        <div className="relative z-10">
+          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mt-10 text-white">
+            Smart <span className="text-purple-600">Learning Platform</span>
+          </h1>
 
-        <div className="flex gap-4 mt-8">
-          <button
-            onClick={() => setShowLogin(true)}
-            className="bg-purple-600 text-white px-8 py-3 rounded-xl shadow-md hover:bg-purple-700 transition"
-          >
-            Get Started
-          </button>
+          <p className="mt-4 text-lg text-white max-w-xl">
+            Organize your studies, track tasks, manage resources, and boost your productivity — all in one place.
+          </p>
 
-          <button
-            onClick={() => scrollToSection(aboutRef)}
-            className="border border-gray-400 px-8 py-3 rounded-xl hover:bg-gray-200 transition bg-white/50 backdrop-blur-sm"
-          >
-            Learn More
-          </button>
+          <div className="flex gap-4 mt-8 justify-center">
+            <button
+              onClick={() => setShowLogin(true)}
+              className="bg-purple-600 text-white px-8 py-3 rounded-xl shadow-md hover:bg-purple-700 transition"
+            >
+              Get Started
+            </button>
+
+            <button
+              onClick={() => scrollToSection(aboutRef)}
+              className="border border-gray-400 px-8 py-3 rounded-xl hover:bg-gray-200 transition bg-white/50 backdrop-blur-sm"
+            >
+              Learn More
+            </button>
+          </div>
         </div>
       </section>
 
       {/* FEATURES */}
-      <section className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 py-20">
+      <section className="min-h-screen flex flex-col items-center justify-center bg-transparent px-6 py-20">
         
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-800">Everything You Need to Succeed</h2>
@@ -148,7 +159,7 @@ export default function Home() {
       {/* ABOUT */}
       <section
         ref={aboutRef}
-        className="min-h-screen flex items-center justify-center bg-white px-6 py-12"
+        className="min-h-screen flex items-center justify-center bg-transparent px-6 py-12"
       >
         <div className="grid md:grid-cols-2 gap-10 max-w-6xl items-center">
 
@@ -193,7 +204,7 @@ export default function Home() {
       {/* CONTACT */}
       <section
         ref={contactRef}
-        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50 px-6 py-12"
+        className="min-h-screen flex items-center justify-center bg-transparent px-6 py-12"
       >
         <div className="max-w-6xl w-full grid md:grid-cols-2 gap-10">
 
