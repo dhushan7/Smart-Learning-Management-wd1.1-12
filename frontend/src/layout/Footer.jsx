@@ -11,13 +11,9 @@ export default function Footer() {
     const checkRole = () => {
       setRole(localStorage.getItem("role"));
     };
-
     checkRole();
-    const intervalId = setInterval(checkRole, 1000);
     window.addEventListener("storage", checkRole);
-
     return () => {
-      clearInterval(intervalId);
       window.removeEventListener("storage", checkRole);
     };
   }, [location.pathname]);

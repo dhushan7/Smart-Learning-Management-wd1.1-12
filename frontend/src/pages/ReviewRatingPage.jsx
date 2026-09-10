@@ -23,44 +23,62 @@ function inputCls(hasError) {
 
 export default function ReviewRatingPage() {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userToken, setUserToken] = useState(null);
   const [resources, setResources] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [backendStatus, setBackendStatus] = useState("Connecting...");
+
   const [reviewForm, setReviewForm] = useState({
     resourceId: "",
     rating: 5,
     feedbackText: "",
   });
+
   const [formErrors, setFormErrors] = useState({});
   const [editingReview, setEditingReview] = useState(null);
   const [editErrors, setEditErrors] = useState({});
 
-  // 1. Retrieve the real user from Local Storage on mount
+  // 🔐 SAFE AUTH HEADERS (FIXED)
+  const authHeaders = useMemo(() => {
+    return userToken
+      ? { Authorization: `Bearer ${userToken}` }
+      : {};
+  }, [userToken]);
+
+  // Load user from localStorage
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setCurrentUser(parsedUser.username); 
+        setCurrentUser(parsedUser.username);
+        setUserToken(parsedUser.token);
       } catch (err) {
         console.error("Failed to parse user data", err);
       }
     }
   }, []);
 
+  // 🔥 FIXED: LOAD DATA WITH AUTH HEADERS
   const loadData = useCallback(async () => {
     try {
       const [rRes, rvRes] = await Promise.all([
-        fetch(`${API_BASE}/resources`),
-        fetch(`${API_BASE}/reviews`),
+        fetch(`${API_BASE}/resources`, {
+          headers: authHeaders,
+        }),
+        fetch(`${API_BASE}/reviews`, {
+          headers: authHeaders,
+        }),
       ]);
+
       if (rRes.ok) setResources(await rRes.json());
       if (rvRes.ok) setReviews(await rvRes.json());
+
       setBackendStatus("Online: API connected");
     } catch {
       setBackendStatus("Offline: using local fallback");
     }
-  }, []);
+  }, [authHeaders]);
 
   useEffect(() => {
     loadData();
@@ -70,6 +88,7 @@ export default function ReviewRatingPage() {
     () => [...resources].sort((a, b) => Number(b.id) - Number(a.id)),
     [resources]
   );
+
   const sortedReviews = useMemo(
     () => [...reviews].sort((a, b) => Number(b.id) - Number(a.id)),
     [reviews]
@@ -78,12 +97,6 @@ export default function ReviewRatingPage() {
   function handleReviewInput(e) {
     const { name, value } = e.target;
     setReviewForm((p) => ({ ...p, [name]: value }));
-    if (formErrors[name])
-      setFormErrors((p) => {
-        const n = { ...p };
-        delete n[name];
-        return n;
-      });
   }
 
   function validateSubmitForm() {
@@ -94,7 +107,9 @@ export default function ReviewRatingPage() {
     if (!reviewForm.resourceId) e.resourceId = "Please select a resource.";
     if (!Number.isInteger(rating) || rating < 1 || rating > 5)
       e.rating = "Rating must be between 1 and 5.";
-    if (!feedback) e.feedbackText = "Feedback is required.";
+
+    if (!feedback)
+      e.feedbackText = "Feedback is required.";
     else if (feedback.length < FEEDBACK_MIN)
       e.feedbackText = `Feedback must be at least ${FEEDBACK_MIN} characters.`;
     else if (feedback.length > FEEDBACK_MAX)
@@ -111,7 +126,9 @@ export default function ReviewRatingPage() {
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5)
       e.rating = "Rating must be 1–5.";
-    if (!feedback) e.feedbackText = "Feedback is required.";
+
+    if (!feedback)
+      e.feedbackText = "Feedback is required.";
     else if (feedback.length < FEEDBACK_MIN)
       e.feedbackText = `Feedback must be at least ${FEEDBACK_MIN} characters.`;
     else if (feedback.length > FEEDBACK_MAX)
@@ -121,67 +138,95 @@ export default function ReviewRatingPage() {
     return Object.keys(e).length === 0;
   }
 
+  // 🔐 SUBMIT REVIEW
   async function handleReviewSubmit(e) {
     e.preventDefault();
-    if (!currentUser) {
+
+    if (!currentUser || !userToken) {
       alert("You must be logged in to submit a review.");
       return;
     }
+
     if (!validateSubmitForm()) return;
 
     const payload = {
       resourceId: Number(reviewForm.resourceId),
       rating: Number(reviewForm.rating),
       feedbackText: reviewForm.feedbackText.trim(),
-      userId: currentUser, // Using dynamic user
+      userId: currentUser,
     };
 
     try {
       const res = await fetch(`${API_BASE}/reviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
+
       if (!res.ok) throw new Error();
+
       const saved = await res.json();
       setReviews((prev) => [saved, ...prev]);
-      setBackendStatus("Online: API connected");
+
       setReviewForm({ resourceId: "", rating: 5, feedbackText: "" });
       setFormErrors({});
     } catch {
       const local = { id: Date.now(), ...payload };
       setReviews((prev) => [local, ...prev]);
-      setBackendStatus("Offline: using local fallback");
-      setReviewForm({ resourceId: "", rating: 5, feedbackText: "" });
-      setFormErrors({});
     }
   }
 
+  // 🔐 DELETE REVIEW
   async function handleDelete(id) {
     if (!window.confirm("Delete this review?")) return;
+    if (!userToken) return;
+
     try {
-      await fetch(`${API_BASE}/reviews/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/reviews/${id}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+
+      if (!res.ok) throw new Error();
+
       setReviews((prev) => prev.filter((r) => r.id !== id));
     } catch {
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+      alert("Delete failed.");
     }
   }
 
+  // 🔐 UPDATE REVIEW
   async function handleEditSave() {
     if (!validateEditForm()) return;
-    const feedback = editingReview.feedbackText.trim();
-    const rating = Number(editingReview.rating);
+    if (!userToken) return;
+
     try {
-      const res = await fetch(`${API_BASE}/reviews/${editingReview.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, feedbackText: feedback }),
-      });
+      const res = await fetch(
+        `${API_BASE}/reviews/${editingReview.id}`,
+        {
+          method: "PUT",
+          headers: {
+            ...authHeaders,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rating: Number(editingReview.rating),
+            feedbackText: editingReview.feedbackText.trim(),
+          }),
+        }
+      );
+
       if (!res.ok) throw new Error();
+
       const updated = await res.json();
+
       setReviews((prev) =>
         prev.map((r) => (r.id === updated.id ? updated : r))
       );
+
       setEditingReview(null);
       setEditErrors({});
     } catch {
@@ -377,7 +422,6 @@ export default function ReviewRatingPage() {
         {/* Reviews List */}
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {sortedReviews.map((review) => {
-            // Check if the currently logged-in user matches the review author
             const isOwn = currentUser && review.userId === currentUser;
             
             return (

@@ -15,13 +15,19 @@ import com.smartlearning.backend.repository.OTPRepository;
 import com.smartlearning.backend.service.EmailService;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.smartlearning.backend.config.JwtTokenProvider;
+
 import java.time.LocalDateTime;
 
 import java.util.*;
 
 @RestController
 @RequestMapping("/user")
-
+@CrossOrigin(origins = "http://localhost:3000")
 
 public class UserController {
 
@@ -203,6 +209,60 @@ public class UserController {
         return ResponseEntity.ok("Registration successful");
     }
 
+    @Autowired
+    private JwtTokenProvider tokenProvider;
+
+    private final String GOOGLE_CLIENT_ID = "google client id here...";
+
+    @PostMapping("/google-login")
+    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
+        String idTokenString = request.get("token");
+        if (idTokenString == null) {
+            return ResponseEntity.badRequest().body("Token missing");
+        }
+
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                    .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken != null) {
+                GoogleIdToken.Payload payload = idToken.getPayload();
+
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+                
+                // Generate a reliable local base username using the email alias
+                String username = email.split("@")[0]; 
+
+                // Find or provision user automatically
+                User user = userRepository.findByEmail(email).orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setUsername(username);
+                    newUser.setRole("Student");
+                    newUser.setPassword(""); // OAuth users don't need local raw passwords
+                    return userRepository.save(newUser);
+                });
+
+                // Mint application specific JWT token
+                String jwtToken = tokenProvider.generateToken(user.getUsername(), user.getRole(), user.getEmail());
+
+                return ResponseEntity.ok(Map.of(
+                        "username", user.getUsername(),
+                        "email", user.getEmail(),
+                        "role", user.getRole(),
+                        "token", jwtToken
+                ));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google Token");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Auth Error: " + e.getMessage());
+        }
+    }
 
     // admin create users
     @PostMapping("/admin/create")
@@ -233,31 +293,31 @@ public class UserController {
         String password = request.get("password");
 
         if (login == null || password == null) {
-            return ResponseEntity.badRequest()
-                    .body("Login and password required");
+            return ResponseEntity.badRequest().body("Login and password required");
         }
 
         Optional<User> existingUser = userRepository.findByLogin(login);
 
         if (existingUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("User not found");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found");
         }
 
         User dbUser = existingUser.get();
-//        if (!passwordEncoder.matches(password, dbUser.getPassword())) {
-//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-//                    .body("Invalid password");
-//        }
+
+        // Validate password
         if (!password.equals(dbUser.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Invalid password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
         }
 
+        // 🔥 GENERATE JWT TOKEN HERE
+        String jwtToken = tokenProvider.generateToken(dbUser.getUsername(), dbUser.getRole(), dbUser.getEmail());
+
+        // Return token to the frontend session builder
         return ResponseEntity.ok(Map.of(
                 "username", dbUser.getUsername(),
                 "email", dbUser.getEmail(),
-                "role", dbUser.getRole()
+                "role", dbUser.getRole(),
+                "token", jwtToken
         ));
     }
 
